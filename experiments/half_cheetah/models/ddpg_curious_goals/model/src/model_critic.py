@@ -7,13 +7,14 @@ class Model(torch.nn.Module):
 
         self.device = "cpu"
 
+
         self.layers = [ 
-            nn.Linear(input_shape[0] + outputs_count, hidden_count),
+            nn.Linear(input_shape[0]*2 + outputs_count, hidden_count),
             nn.ReLU(),
             nn.Linear(hidden_count, hidden_count//2),
             nn.ReLU(),            
             nn.Linear(hidden_count//2, 1)           
-        ]  
+        ] 
 
         torch.nn.init.xavier_uniform_(self.layers[0].weight)
         torch.nn.init.xavier_uniform_(self.layers[2].weight)
@@ -27,15 +28,17 @@ class Model(torch.nn.Module):
         print("\n\n")
        
 
-    def forward(self, state, action):
-        x = torch.cat([state, action], dim = 1)
+    def forward(self, state, goal, action):
+        x = torch.cat([state, goal, action], dim = 1)
         return self.model(x)
 
      
     def save(self, path):
+        print("saving to ", path)
         torch.save(self.model.state_dict(), path + "trained/model_critic.pt")
 
     def load(self, path):       
+        print("loading from ", path)
         self.model.load_state_dict(torch.load(path + "trained/model_critic.pt", map_location = self.device))
         self.model.eval()  
     

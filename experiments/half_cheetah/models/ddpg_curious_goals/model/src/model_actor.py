@@ -13,9 +13,10 @@ class Model(torch.nn.Module):
 
         self.device = "cpu"
         
-        self.layers = [     
-            nn.Linear(input_shape[0], hidden_count),
-            nn.ReLU(),             
+         
+        self.layers = [ 
+            nn.Linear(input_shape[0]*2, hidden_count),
+            nn.ReLU(),           
             libs_layers.NoisyLinearFull(hidden_count, hidden_count//2),
             nn.ReLU(),    
             libs_layers.NoisyLinearFull(hidden_count//2, outputs_count),
@@ -34,14 +35,17 @@ class Model(torch.nn.Module):
         print("\n\n")
        
 
-    def forward(self, state):
-        return self.model(state)
+    def forward(self, state, goal):
+        x = torch.cat([state, goal], dim = 1)
+        return self.model(x)
 
      
     def save(self, path):
+        print("saving to ", path)
         torch.save(self.model.state_dict(), path + "trained/model_actor.pt")
 
     def load(self, path):       
+        print("loading from ", path)
         self.model.load_state_dict(torch.load(path + "trained/model_actor.pt", map_location = self.device))
         self.model.eval()  
     

@@ -24,7 +24,7 @@ class ExperienceBufferContinuousGoals():
 
         episode_length = len(self.state_episode)
 
-        if done or episode_length > 4096:
+        if done or episode_length > 64:
             #find state with highest motivation in episode
             goal_episode_idx = numpy.argmax(self.motivation_episode)
 
