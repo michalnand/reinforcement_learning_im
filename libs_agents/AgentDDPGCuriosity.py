@@ -144,16 +144,16 @@ class AgentDDPGCuriosity():
 
 
     def save(self, save_path):
-        self.model_critic.save(save_path+"path/")
-        self.model_actor.save(save_path+"path/")
-        self.model_forward.save(save_path+"path/")
-        self.model_forward_target.save(save_path+"path/")
+        self.model_critic.save(save_path+"trained/")
+        self.model_actor.save(save_path+"trained/")
+        self.model_forward.save(save_path+"trained/")
+        self.model_forward_target.save(save_path+"trained/")
 
     def load(self, load_path):
-        self.model_critic.load(load_path+"path/")
-        self.model_actor.load(load_path+"path/")
-        self.model_forward.load(load_path+"path/")
-        self.model_forward_target.load(load_path+"path/")
+        self.model_critic.load(load_path+"trained/")
+        self.model_actor.load(load_path+"trained/")
+        self.model_forward.load(load_path+"trained/")
+        self.model_forward_target.load(load_path+"trained/")
 
     
     def get_log(self):
