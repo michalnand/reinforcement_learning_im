@@ -13,7 +13,7 @@ class Model(torch.nn.Module):
         self.device = "cpu"
         
         self.layers = [ 
-            nn.Linear(input_shape[0], hidden_count),
+            nn.Linear(input_shape[0]*2, hidden_count),
             nn.ReLU(),           
             libs_layers.NoisyLinearFull(hidden_count, hidden_count),
             nn.ReLU(),    
@@ -31,8 +31,9 @@ class Model(torch.nn.Module):
         print("\n\nmodel_actor")
         print(self.model)
        
-    def forward(self, state):
-        return self.model(state)
+    def forward(self, state, goal):
+        x = torch.cat([state, goal], dim=1)
+        return self.model(x)
 
      
     def save(self, path):

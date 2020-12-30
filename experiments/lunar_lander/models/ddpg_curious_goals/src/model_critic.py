@@ -8,7 +8,7 @@ class Model(torch.nn.Module):
         self.device = "cpu"
 
         self.layers = [ 
-            nn.Linear(input_shape[0] + outputs_count, hidden_count),
+            nn.Linear(input_shape[0]*2 + outputs_count, hidden_count),
             nn.ReLU(),
             nn.Linear(hidden_count, hidden_count),
             nn.ReLU(),            
@@ -26,8 +26,8 @@ class Model(torch.nn.Module):
         print(self.model)
        
 
-    def forward(self, state, action):
-        x = torch.cat([state, action], dim = 1)
+    def forward(self, state, goal, action):
+        x = torch.cat([state, goal, action], dim = 1)
         return self.model(x)
 
      

@@ -22,11 +22,12 @@ env.reset()
 
 agent = libs_agents.AgentDQN(env, Model, Config)
 
-max_iterations = 10*(10**6) 
+max_iterations = 6*(10**6) 
 
-#trainig = TrainingIterations(env, agent, max_iterations, path, 10000)
-#trainig.run() 
+trainig = TrainingIterations(env, agent, max_iterations, path, 10000)
+trainig.run() 
 
+'''
 agent.load(path)
 agent.disable_training()
 while True:
@@ -34,3 +35,4 @@ while True:
 
     env.render()
     time.sleep(0.01)
+'''

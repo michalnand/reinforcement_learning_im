@@ -6,6 +6,7 @@ from .AgentDQNCuriousGoals          import *
 from .AgentDQNDuel                  import *
 
 from .AgentDDPG                     import *
+from .AgentDDPGCuriousGoals         import *
 
 from .AgentA2C                      import *
 from .AgentA2CContinuous            import *
