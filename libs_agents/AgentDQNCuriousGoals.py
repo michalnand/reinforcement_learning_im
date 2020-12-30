@@ -104,11 +104,13 @@ class AgentDQNCuriousGoals():
         q_predicted      = self.model_dqn.forward(state_t, goals_t)
         q_predicted_next = self.model_dqn_target.forward(state_next_t, goals_t)
 
+        motivation_t = self.beta*motivation_t
+
         #compute target, n-step Q-learning
         q_target         = q_predicted.clone()
         for j in range(self.batch_size): 
             action_idx              = action_t[j] 
-            q_target[j][action_idx] = reward_t[j] + self.beta*motivation_t[j] + self.gamma*torch.max(q_predicted_next[j])*(1- done_t[j])
+            q_target[j][action_idx] = reward_t[j] + motivation_t + self.gamma*torch.max(q_predicted_next[j])*(1- done_t[j])
  
         #train DQN model
         loss_dqn  = (q_target.detach() - q_predicted)**2

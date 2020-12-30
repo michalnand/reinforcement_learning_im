@@ -104,8 +104,10 @@ class AgentDDPGCuriousGoals():
         action_next_t   = self.model_actor_target.forward(state_next_t, goals_t).detach()
         value_next_t    = self.model_critic_target.forward(state_next_t, goals_t, action_next_t).detach()
 
+        motivation_t = self.beta*motivation_t
+
         #critic loss
-        value_target    = reward_t + self.gamma*done_t*value_next_t
+        value_target    = reward_t + motivation_t + self.gamma*done_t*value_next_t
         value_predicted = self.model_critic.forward(state_t, goals_t, action_t)
 
         critic_loss     = ((value_target - value_predicted)**2)
