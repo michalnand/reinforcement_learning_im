@@ -34,7 +34,9 @@ class NoisyLinear(torch.nn.Module):
 
         return x.matmul(weight_noised) + bias_noised
 
-
+    def __repr__(self):
+        return "NoisyLinear(in_features={}, out_features={}, sigma={})".format(self.in_features, self.out_features, self.sigma)
+    
 if __name__ == "__main__":
     in_features     = 32
     out_features    = 16
