@@ -38,7 +38,7 @@ env.reset()
 
 agent = libs_agents.AgentDQNCuriousGoals(env, ModelDQN, ModelForward, Config)
 
-max_iterations = 10**6
+max_iterations = 500000
 trainig = TrainingIterations(env, agent, max_iterations, path, 1000)
 trainig.run() 
 

@@ -37,7 +37,7 @@ env.reset()
 
 agent = libs_agents.AgentDQN(env, Model, Config)
 
-max_iterations = 10**6
+max_iterations = 500000
 trainig = TrainingIterations(env, agent, max_iterations, path, 1000)
 trainig.run() 
 

@@ -95,7 +95,7 @@ class AgentDQN():
         cv2.waitKey(1)
         
     def train_model(self):
-        state_t, state_next_t, action_t, reward_t, done_t = self.experience_replay.sample(self.batch_size, self.model.device)
+        state_t, state_next_t, action_t, reward_t, done_t, _ = self.experience_replay.sample(self.batch_size, self.model.device)
 
         #q values, state now, state next
         q_predicted      = self.model.forward(state_t)
@@ -148,10 +148,10 @@ class AgentDQN():
         return action_idx_np, action_one_hot_t
 
     def save(self, save_path):
-        self.model.save(save_path)
+        self.model.save(save_path + "trained/")
 
     def load(self, save_path):
-        self.model.load(save_path)
+        self.model.load(save_path + "trained/")
     
 
 

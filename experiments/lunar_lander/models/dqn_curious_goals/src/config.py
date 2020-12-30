@@ -5,7 +5,7 @@ class Config():
     def __init__(self):        
         self.gamma                  = 0.99
         self.learning_rate_dqn      = 0.0002
-        self.learning_rate_forward  = 0.0005
+        self.learning_rate_forward  = 0.0002
         self.target_update          = 1000
 
         self.batch_size             = 32

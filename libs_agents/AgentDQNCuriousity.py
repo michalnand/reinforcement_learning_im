@@ -1,9 +1,9 @@
 import numpy
 import torch
-from .ExperienceBufferGoals import *
+from .ExperienceBuffer import *
 
-class AgentDQNCuriousGoals():
-    def __init__(self, env, ModelDQN, ModelForward, Config):
+class AgentDQNCuriousity():
+    def __init__(self, env, ModelDQN, ModelForward, ModelForwardTarget, Config):
         self.env    = env
  
         config      = Config.Config()
@@ -20,8 +20,7 @@ class AgentDQNCuriousGoals():
         self.actions_count      = self.env.action_space.n
 
         
-
-        self.experience_replay  = ExperienceBufferGoals(config.experience_replay_size, self.state_shape, self.actions_count)
+        self.experience_replay  = ExperienceBuffer(config.experience_replay_size, self.state_shape, self.actions_count)
 
         self.model_dqn          = ModelDQN.Model(self.state_shape, self.actions_count)
         self.model_dqn_target   = ModelDQN.Model(self.state_shape, self.actions_count)
@@ -30,8 +29,9 @@ class AgentDQNCuriousGoals():
         for target_param, param in zip(self.model_dqn_target.parameters(), self.model_dqn.parameters()):
             target_param.data.copy_(param.data)
 
-        self.model_forward      = ModelForward.Model(self.state_shape, self.actions_count)
-        self.optimizer_forward  = torch.optim.Adam(self.model_forward.parameters(), lr=config.learning_rate_forward)
+        self.model_forward          = ModelForward.Model(self.state_shape, self.actions_count)
+        self.model_forward_target   = ModelForwardTarget.Model(self.state_shape, self.actions_count)
+        self.optimizer_forward      = torch.optim.Adam(self.model_forward.parameters(), lr=config.learning_rate_forward)
 
         self.state              = env.reset()
 
@@ -39,8 +39,6 @@ class AgentDQNCuriousGoals():
 
         self.loss_forward             = 0.0
         self.internal_motivation      = 0.0
-
-        self.goal           = self.experience_replay.get_goal_by_motivation()
 
         self.enable_training()
 
@@ -60,20 +58,14 @@ class AgentDQNCuriousGoals():
              
         state_t             = torch.from_numpy(self.state).to(self.model_dqn.device).unsqueeze(0).float()
         
-        goal_t              = torch.from_numpy(self.goal).unsqueeze(0).to(self.model_dqn.device)
-        action_idx_np, action_one_hot_t   = self._sample_action(state_t, goal_t, epsilon)
+        action_idx_np, action_one_hot_t   = self._sample_action(state_t, epsilon)
 
         self.action = action_idx_np[0]
 
         state_next, self.reward, done, self.info = self.env.step(self.action)
  
         if self.enabled_training:
-            state_next_predicted_t = self.model_forward(state_t, action_one_hot_t)
-            state_next_predicted_np= state_next_predicted_t.squeeze(0).detach().to("cpu").numpy()
-
-            curiosity   = ((state_next - state_next_predicted_np)**2).mean()
-
-            self.experience_replay.add(self.state, self.action, self.reward, done, curiosity)
+            self.experience_replay.add(self.state, self.action, self.reward, done, 0)
 
 
         if self.enabled_training and (self.iterations > self.experience_replay.size):
@@ -85,7 +77,6 @@ class AgentDQNCuriousGoals():
 
         if done:
             self.state  = self.env.reset()
-            self.goal   = self.experience_replay.get_goal_by_motivation()
         else:
             self.state = state_next.copy()
 
@@ -98,19 +89,31 @@ class AgentDQNCuriousGoals():
 
         
     def train_model(self):
-        state_t, state_next_t, action_t, reward_t, done_t, goals_t, motivation_t = self.experience_replay.sample(self.batch_size, self.model_dqn.device)
+        state_t, state_next_t, action_t, reward_t, done_t, _ = self.experience_replay.sample(self.batch_size, self.model_dqn.device)
+ 
+        #internal motivation
+        action_one_hot_t            = self._action_one_hot(action_t)
+        state_next_predicted_t      = self.model_forward(state_t, action_one_hot_t)
+        state_next_prdicted_t_t     = self.model_forward_target(state_t, action_one_hot_t)
+
+        curiosity_prediction_dif    = (state_next_prdicted_t_t.detach() - state_next_predicted_t)**2
+        curiosity_t                 = self.beta*curiosity_prediction_dif.mean(dim=1).detach()
+        
+        #train forward model, MSE loss
+        loss_forward = curiosity_prediction_dif.mean()
+        self.optimizer_forward.zero_grad()
+        loss_forward.backward()
+        self.optimizer_forward.step()
 
         #q values, state now, state next
-        q_predicted      = self.model_dqn.forward(state_t, goals_t)
-        q_predicted_next = self.model_dqn_target.forward(state_next_t, goals_t)
-
-        motivation_t = self.beta*motivation_t
+        q_predicted      = self.model_dqn.forward(state_t)
+        q_predicted_next = self.model_dqn_target.forward(state_next_t)
 
         #compute target, n-step Q-learning
         q_target         = q_predicted.clone()
         for j in range(self.batch_size): 
             action_idx              = action_t[j] 
-            q_target[j][action_idx] = reward_t[j] + motivation_t[j] + self.gamma*torch.max(q_predicted_next[j])*(1- done_t[j])
+            q_target[j][action_idx] = reward_t[j] + curiosity_t[j] + self.gamma*torch.max(q_predicted_next[j])*(1- done_t[j])
  
         #train DQN model
         loss_dqn  = (q_target.detach() - q_predicted)**2
@@ -122,29 +125,15 @@ class AgentDQNCuriousGoals():
             param.grad.data.clamp_(-10.0, 10.0)
         self.optimizer_dqn.step()
 
-        #train forward model, MSE loss
-        action_one_hot_t        = self._action_one_hot(action_t)
-        state_next_predicted_t  = self.model_forward(state_t, action_one_hot_t)
-        loss_forward = (state_next_t - state_next_predicted_t)**2
-        loss_forward = loss_forward.mean() 
-
-        self.optimizer_forward.zero_grad()
-        loss_forward.backward()
-        self.optimizer_forward.step()
-
-        internal_motivation = motivation_t.mean().detach().to("cpu").numpy()
-
         k = 0.02
         self.loss_forward           = (1.0 - k)*self.loss_forward        + k*loss_forward.detach().to("cpu").numpy()
-        self.internal_motivation    = (1.0 - k)*self.internal_motivation + k*internal_motivation
+        self.internal_motivation    = (1.0 - k)*self.internal_motivation + k*curiosity_t.mean().detach().to("cpu").numpy()
 
-
-       
-    def _sample_action(self, state_t, goal_t, epsilon):
+    def _sample_action(self, state_t, epsilon):
 
         batch_size = state_t.shape[0]
 
-        q_values_t          = self.model_dqn(state_t, goal_t).to("cpu")
+        q_values_t          = self.model_dqn(state_t).to("cpu")
 
         #best actions indices
         q_max_indices_t     = torch.argmax(q_values_t, dim = 1)
@@ -179,12 +168,14 @@ class AgentDQNCuriousGoals():
         return action_one_hot_t
 
     def save(self, save_path):
-        self.model_dqn.save(save_path)
-        self.model_forward.save(save_path)
+        self.model_dqn.save(save_path + "trained/")
+        self.model_forward.save(save_path + "trained/")
+        self.model_forward_target.save(save_path + "trained/")
 
     def load(self, save_path):
-        self.model_dqn.load(save_path)
-        self.model_forward.load(save_path)
+        self.model_dqn.load(save_path + "trained/")
+        self.model_forward.load(save_path + "trained/")
+        self.model_forward_target.save(save_path + "trained/")
 
     def get_log(self):
         result = "" 

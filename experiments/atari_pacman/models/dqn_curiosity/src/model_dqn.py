@@ -123,16 +123,16 @@ class Model(torch.nn.Module):
     def save(self, path):
         print("saving ", path)
 
-        torch.save(self.model_features.state_dict(), path + "model_features.pt")
-        torch.save(self.model_value.state_dict(), path + "model_value.pt")
-        torch.save(self.model_advantage.state_dict(), path + "model_advantage.pt")
+        torch.save(self.model_features.state_dict(), path + "model_dqn_features.pt")
+        torch.save(self.model_value.state_dict(), path + "model_dqn_value.pt")
+        torch.save(self.model_advantage.state_dict(), path + "model_dqn_advantage.pt")
 
     def load(self, path):
         print("loading ", path) 
 
-        self.model_features.load_state_dict(torch.load(path + "model_features.pt", map_location = self.device))
-        self.model_value.load_state_dict(torch.load(path + "model_value.pt", map_location = self.device))
-        self.model_advantage.load_state_dict(torch.load(path + "model_advantage.pt", map_location = self.device))
+        self.model_features.load_state_dict(torch.load(path + "model_dqn_features.pt", map_location = self.device))
+        self.model_value.load_state_dict(torch.load(path + "model_dqn_value.pt", map_location = self.device))
+        self.model_advantage.load_state_dict(torch.load(path + "model_dqn_advantage.pt", map_location = self.device))
         
         self.model_features.eval() 
         self.model_value.eval() 
@@ -169,11 +169,12 @@ if __name__ == "__main__":
 
 
     state   = torch.rand((batch_size, channels, height, width))
+    goal    = torch.rand((batch_size, channels, height, width))
 
     model = Model((channels, height, width), actions_count)
 
 
-    q_values = model.forward(state)
+    q_values = model.forward(state, goal)
 
     print(q_values.shape)
 

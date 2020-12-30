@@ -30,9 +30,15 @@ class ExperienceBufferGoals():
 
             #index into global array where goal state will be stored
             goal_buffer_idx  = (self.current_idx + goal_episode_idx)%self.size
+
+            dif = (numpy.array(self.state_episode) - numpy.array(self.state_episode[goal_episode_idx]))**2
+            dif = dif.reshape(episode_length, numpy.prod(state.shape))
+            dif = dif.mean(axis=1)
+            dif = dif - numpy.max(dif)
+            motivation = numpy.exp(dif)
    
             for i in range(episode_length):                
-                self._add(self.state_episode[i], self.action_episode[i], self.reward_episode[i], self.done_episode[i], goal_buffer_idx, self.motivation_episode[i])
+                self._add(self.state_episode[i], self.action_episode[i], self.reward_episode[i], self.done_episode[i], goal_buffer_idx, motivation[i])
 
             self._clear()
 

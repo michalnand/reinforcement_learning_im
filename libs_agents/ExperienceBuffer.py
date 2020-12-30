@@ -17,10 +17,11 @@ class ExperienceBuffer():
             self.action_b       = numpy.zeros((self.size, ), dtype=int)
             self.reward_b       = numpy.zeros((self.size, ), dtype=numpy.float32)
             self.done_b         = numpy.zeros((self.size, ), dtype=numpy.float32)
+            self.ir_b           = numpy.zeros((self.size, ), dtype=numpy.float32)
 
             self.initialized    = True
 
-    def add(self, state, action, reward, done): 
+    def add(self, state, action, reward, done, ir = 0.0): 
         self._initialize()
 
         if done != 0: 
@@ -28,10 +29,11 @@ class ExperienceBuffer():
         else:
             done_ = 0.0
 
-        self.state_b[self.current_idx]          = state.copy()
-        self.action_b[self.current_idx]         = int(action)
-        self.reward_b[self.current_idx]         = reward
-        self.done_b[self.current_idx]           = done_
+        self.state_b[self.current_idx]      = state.copy()
+        self.action_b[self.current_idx]     = int(action)
+        self.reward_b[self.current_idx]     = reward
+        self.done_b[self.current_idx]       = done_
+        self.ir_b[self.current_idx]         = ir
 
         self.current_idx = (self.current_idx + 1)%self.size
 
@@ -44,5 +46,6 @@ class ExperienceBuffer():
         action_t        = torch.from_numpy(numpy.take(self.action_b,    indices, axis=0)).to(device)
         reward_t        = torch.from_numpy(numpy.take(self.reward_b,    indices, axis=0)).to(device)
         done_t          = torch.from_numpy(numpy.take(self.done_b,      indices, axis=0)).to(device)
+        ir_t            = torch.from_numpy(numpy.take(self.ir_b,      indices, axis=0)).to(device)
 
-        return state_t, state_next_t, action_t, reward_t, done_t
+        return state_t, state_next_t, action_t, reward_t, done_t, ir_t
