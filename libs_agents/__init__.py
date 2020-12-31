@@ -2,7 +2,8 @@ from .AgentRandom                   import *
 from .AgentRandomContinuous         import *
 
 from .AgentDQN                      import *
-from .AgentDQNCuriousity            import *
+from .AgentDQNCuriosity             import *
+from .AgentDQNCuriosityGoals        import *
 from .AgentDQNDuel                  import *
 
 from .AgentDDPG                     import *

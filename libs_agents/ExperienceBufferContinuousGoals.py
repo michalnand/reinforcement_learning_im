@@ -11,52 +11,17 @@ class ExperienceBufferContinuousGoals():
         self.state_shape        = state_shape
         self.actions_count      = actions_count
 
-        self._clear()
-
-
-    def add(self, state, action, reward, done, motivation):
-
-        self.state_episode.append(state)
-        self.action_episode.append(action)
-        self.reward_episode.append(reward)
-        self.done_episode.append(done)
-        self.motivation_episode.append(motivation)
-
-        episode_length = len(self.state_episode)
-
-        if done or episode_length > 64:
-            #find state with highest motivation in episode
-            goal_episode_idx = numpy.argmax(self.motivation_episode)
-
-            #index into global array where goal state will be stored
-            goal_buffer_idx  = (self.current_idx + goal_episode_idx)%self.size
-
-            dif = (numpy.array(self.state_episode) - numpy.array(self.state_episode[goal_episode_idx]))**2
-            dif = dif.reshape(episode_length, numpy.prod(state.shape))
-            dif = dif.mean(axis=1)
-            dif = dif - numpy.max(dif)
-            motivation = numpy.exp(dif)
-   
-            for i in range(episode_length):                
-                self._add(self.state_episode[i], self.action_episode[i], self.reward_episode[i], self.done_episode[i], goal_buffer_idx, motivation[i])
-
-            self._clear()
-
-
-
-    def get_goal_by_motivation(self):        
+    def _initialize(self):
         if self.initialized == False:
-            return numpy.zeros(self.state_shape, dtype=numpy.float32)
+            self.state_b        = numpy.zeros((self.size, ) + self.state_shape, dtype=numpy.float32)
+            self.action_b       = numpy.zeros((self.size, self.actions_count), dtype=numpy.float32)
+            self.reward_b       = numpy.zeros((self.size, ), dtype=numpy.float32)
+            self.done_b         = numpy.zeros((self.size, ), dtype=numpy.float32)
+            self.ir_b           = numpy.zeros((self.size, ), dtype=numpy.float32)
 
-        probs = numpy.exp(self.motivation_b - numpy.max(self.motivation_b))
-        probs = probs/numpy.sum(probs) 
+            self.initialized    = True
 
-        idx = numpy.random.choice(range(self.size), p=probs)
-
-        return self.state_b[idx] 
-
-
-    def _add(self, state, action, reward, done, goal, motivation): 
+    def add(self, state, action, reward, done, ir = 0.0): 
         self._initialize()
 
         if done != 0: 
@@ -68,8 +33,7 @@ class ExperienceBufferContinuousGoals():
         self.action_b[self.current_idx]         = action.copy()
         self.reward_b[self.current_idx]         = reward
         self.done_b[self.current_idx]           = done_
-        self.goals_b[self.current_idx]          = goal
-        self.motivation_b[self.current_idx]     = motivation
+        self.ir_b[self.current_idx]             = ir
 
         self.current_idx = (self.current_idx + 1)%self.size
 
@@ -82,31 +46,31 @@ class ExperienceBufferContinuousGoals():
         action_t        = torch.from_numpy(numpy.take(self.action_b,    indices, axis=0)).to(device)
         reward_t        = torch.from_numpy(numpy.take(self.reward_b,    indices, axis=0)).to(device)
         done_t          = torch.from_numpy(numpy.take(self.done_b,      indices, axis=0)).to(device)
-        motivation_t    = torch.from_numpy(numpy.take(self.motivation_b,      indices, axis=0)).to(device)
+        ir_t            = torch.from_numpy(numpy.take(self.ir_b,        indices, axis=0)).to(device)
 
-        goals_indices   = numpy.take(self.goals_b, indices, axis=0)
-        goals_t         = torch.from_numpy(numpy.take(self.state_b,      goals_indices, axis=0)).to(device)
+        #create states sequence, starting from "now position", take sequence_length samples into past
+        states_seq_t    = torch.zeros((self.sequence_length, batch_size) + self.state_shape).to(device)
+        
+        #values if intrinsics motivation
+        ir_values       = numpy.zeros((self.sequence_length, batch_size))
 
+        for j in range(self.sequence_length):
+            indices_        = (indices - j)%self.size
+            states_seq_t[j] = torch.from_numpy(numpy.take(self.state_b, indices_, axis=0)).to(device)
+            
+            ir_values[j]    = numpy.take(self.ir_b, indices_, axis=0)
 
-        return state_t, state_next_t, action_t, reward_t, done_t, goals_t, motivation_t
+        #transpose to shape : batch, sequence_length, state_shape
+        states_seq_t = states_seq_t.transpose(0, 1)
+        
+        #transpose to shape : batch, sequence_length
+        ir_values     = numpy.transpose(ir_values)
 
-    
-    def _initialize(self):
-        if self.initialized == False:
-            self.state_b        = numpy.zeros((self.size, ) + self.state_shape, dtype=numpy.float32)
-            self.action_b       = numpy.zeros((self.size, self.actions_count), dtype=numpy.float32)
-            self.reward_b       = numpy.zeros((self.size, ), dtype=numpy.float32)
-            self.done_b         = numpy.zeros((self.size, ), dtype=numpy.float32)
-            self.goals_b        = numpy.zeros((self.size), dtype=int)
-            self.motivation_b   = numpy.zeros((self.size, ), dtype=numpy.float32)
+        #relative indices into absolute indices
+        #take the state indices with highest ir
+        goals_indices = (indices - numpy.argmax(ir_values, axis=1))%self.size
 
-            self.initialized    = True
-
-
-    def _clear(self):
-        self.state_episode      = []
-        self.action_episode     = []
-        self.reward_episode     = []
-        self.done_episode       = []
-        self.motivation_episode = []
-    
+        #take goal state
+        goal_t        = torch.from_numpy(numpy.take(self.state_b,     goals_indices, axis=0)).to(device)
+        
+        return state_t, state_next_t, states_seq_t, goal_t, action_t, reward_t, done_t, ir_t

@@ -20,7 +20,7 @@ env = gym.make("SuperMarioBros-v0")
 env = SuperMarioWrapper(env)
 env.reset()
 
-agent = libs_agents.AgentDQNCuriousity(env, ModelDQN, ModelForward, ModelForwardTarget, Config)
+agent = libs_agents.AgentDQNCuriosity(env, ModelDQN, ModelForward, ModelForwardTarget, Config)
 
 max_iterations = 10*(10**6) 
 
