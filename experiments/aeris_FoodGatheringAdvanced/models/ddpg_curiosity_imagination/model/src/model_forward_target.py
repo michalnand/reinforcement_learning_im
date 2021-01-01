@@ -23,20 +23,16 @@ class Model(torch.nn.Module):
 
             Flatten(),
 
-            nn.Linear(fc_count, hidden_count),
-            nn.ReLU(),            
-            nn.Linear(hidden_count, hidden_count//2)           
+            nn.Linear(fc_count, hidden_count//2)
         ] 
-
        
         torch.nn.init.xavier_uniform_(self.layers[0].weight)
         torch.nn.init.xavier_uniform_(self.layers[3].weight)
-        torch.nn.init.xavier_uniform_(self.layers[5].weight)
  
         self.model = nn.Sequential(*self.layers) 
         self.model.to(self.device)
 
-        print("model_forward")
+        print("model_forward_target")
         print(self.model)
         print("\n\n")
        
@@ -49,11 +45,11 @@ class Model(torch.nn.Module):
 
     def save(self, path):
         print("saving to ", path)
-        torch.save(self.model.state_dict(), path + "model_forward.pt")
+        torch.save(self.model.state_dict(), path + "model_forward_target.pt")
 
     def load(self, path):       
         print("loading from ", path)
-        self.model.load_state_dict(torch.load(path + "model_forward.pt", map_location = self.device))
+        self.model.load_state_dict(torch.load(path + "model_forward_target.pt", map_location = self.device))
         self.model.eval()  
 
 

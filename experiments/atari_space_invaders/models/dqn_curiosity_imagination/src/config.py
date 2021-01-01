@@ -11,8 +11,8 @@ class Config():
         self.learning_rate_dqn          = 0.0001
         self.learning_rate_forward      = 0.0004
 
-        self.beta_curiosity         = 10.0
-        self.beta_imagination       = 0.1
+        self.beta_curiosity             = 10.0
+        self.beta_imagination           = 10.0
 
         self.rollouts               = 16
                  

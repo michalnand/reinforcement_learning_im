@@ -25,9 +25,6 @@ class Model(torch.nn.Module):
 
             nn.Linear(fc_count, hidden_count//2)
         ] 
-
-        self.outputs_count = hidden_count//2
-
        
         torch.nn.init.xavier_uniform_(self.layers[0].weight)
         torch.nn.init.xavier_uniform_(self.layers[3].weight)

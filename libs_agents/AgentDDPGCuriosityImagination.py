@@ -45,8 +45,6 @@ class AgentDDPGCuriosityImagination():
         self.model_forward_target   = ModelForwardTarget.Model(self.state_shape, self.actions_count)
         self.optimizer_forward      = torch.optim.Adam(self.model_forward.parameters(), lr=config.forward_learning_rate)
 
-        self.curiosity_features_count = self.model_forward_target.outputs_count
-
         self.state              = env.reset()
         self.iterations         = 0
 
@@ -55,6 +53,9 @@ class AgentDDPGCuriosityImagination():
         self.entropy_motivation       = 0.0
 
         self.enable_training()
+
+        state_t        = torch.from_numpy(self.state).to(self.model_dqn.device).unsqueeze(0).float()
+        self.curiosity_features_count = self.model_forward(state_t).shape[1]
 
     def enable_training(self):
         self.enabled_training = True

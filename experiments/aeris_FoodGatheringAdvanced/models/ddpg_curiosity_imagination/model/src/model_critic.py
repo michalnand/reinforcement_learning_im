@@ -18,7 +18,7 @@ class Model(torch.nn.Module):
         fc_count        = kernels_count*self.width//4
 
         self.layers = [ 
-            nn.Conv1d(self.channels*2 + outputs_count, kernels_count, kernel_size=8, stride=4, padding=2),
+            nn.Conv1d(self.channels + outputs_count, kernels_count, kernel_size=8, stride=4, padding=2),
             nn.ReLU(),
 
             Flatten(),
@@ -41,9 +41,9 @@ class Model(torch.nn.Module):
         print("\n\n")
        
 
-    def forward(self, state, goal, action):
+    def forward(self, state, action):
         a_  = action.unsqueeze(2).repeat(1, 1, state.shape[2])
-        x   = torch.cat([state, goal, a_], dim = 1) 
+        x   = torch.cat([state, a_], dim = 1) 
       
         return self.model(x)
 

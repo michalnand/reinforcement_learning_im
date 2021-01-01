@@ -32,8 +32,6 @@ class Model(torch.nn.Module):
             nn.Linear(512, 512)
         ]
 
-        self.outputs_count = 512
-
         for i in range(len(self.layers)):
             if hasattr(self.layers[i], "weight"):
                 torch.nn.init.xavier_uniform_(self.layers[i].weight)
