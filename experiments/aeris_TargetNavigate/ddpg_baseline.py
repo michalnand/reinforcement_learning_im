@@ -14,7 +14,7 @@ import models.ddpg_baseline.model.src.model_critic     as ModelCritic
 import models.ddpg_baseline.model.src.model_actor      as ModelActor
 import models.ddpg_baseline.model.src.config           as Config
 
-path = "models/ddpg_baseline/run_0/"
+path = "models/ddpg_baseline/model/"
 
 env = gym.make("TargetNavigate-v0", render = True)
 

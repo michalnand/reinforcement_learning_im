@@ -90,25 +90,21 @@ class AgentDDPGCuriosity():
     def train_model(self):
         state_t, state_next_t, action_t, reward_t, done_t, _ = self.experience_replay.sample(self.batch_size, self.model_critic.device)
 
-        reward_t = reward_t.unsqueeze(-1)
-        done_t   = (1.0 - done_t).unsqueeze(-1)
-
         action_next_t   = self.model_actor_target.forward(state_next_t).detach()
         value_next_t    = self.model_critic_target.forward(state_next_t, action_next_t).detach()
 
-        
-        #internal motivation
-        state_next_predicted_t      = self.model_forward(state_t, action_t)
-        state_next_prdicted_t_t     = self.model_forward_target(state_t, action_t)
+        #curiosity internal motivation
+        curiosity_prediction_t      = self._curiosity(state_t, action_t)
+        curiosity_t                 = self.beta*curiosity_prediction_t.detach()
 
-        curiosity_prediction_dif    = (state_next_prdicted_t_t.detach() - state_next_predicted_t)**2
-        curiosity_t                 = self.beta*curiosity_prediction_dif.mean(dim=1).detach()
-        
-        loss_forward                = curiosity_prediction_dif.mean()
-
-        self.optimizer_forward.zero_grad()       
+        #train forward model, MSE loss
+        loss_forward = curiosity_prediction_t.mean()
+        self.optimizer_forward.zero_grad()
         loss_forward.backward()
         self.optimizer_forward.step()
+
+        reward_t = reward_t.unsqueeze(-1)
+        done_t   = (1.0 - done_t).unsqueeze(-1)
 
         #critic loss
         value_target    = reward_t + curiosity_t + self.gamma*done_t*value_next_t
@@ -142,6 +138,7 @@ class AgentDDPGCuriosity():
         self.loss_forward           = (1.0 - k)*self.loss_forward        + k*loss_forward.detach().to("cpu").numpy()
         self.internal_motivation    = (1.0 - k)*self.internal_motivation + k*curiosity_t.mean().detach().to("cpu").numpy()
 
+        #print(">>> ", self.loss_forward, self.internal_motivation)
 
     def save(self, save_path):
         self.model_critic.save(save_path+"trained/")
@@ -171,3 +168,12 @@ class AgentDDPGCuriosity():
         action_np   = action_t.detach().to("cpu").numpy()
 
         return action_t, action_np
+
+    def _curiosity(self, state_t, action_t):
+        state_next_predicted_t       = self.model_forward(state_t, action_t)
+        state_next_predicted_t_t     = self.model_forward_target(state_t, action_t)
+
+        curiosity_t    = (state_next_predicted_t_t.detach() - state_next_predicted_t)**2
+        curiosity_t    = curiosity_t.mean(dim=1)
+
+        return curiosity_t

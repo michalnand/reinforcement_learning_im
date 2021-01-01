@@ -91,16 +91,13 @@ class AgentDQNCuriosity():
     def train_model(self):
         state_t, state_next_t, action_t, reward_t, done_t, _ = self.experience_replay.sample(self.batch_size, self.model_dqn.device)
  
-        #internal motivation
+        #curiosity internal motivation
         action_one_hot_t            = self._action_one_hot(action_t)
-        state_next_predicted_t      = self.model_forward(state_t, action_one_hot_t)
-        state_next_prdicted_t_t     = self.model_forward_target(state_t, action_one_hot_t)
-
-        curiosity_prediction_dif    = (state_next_prdicted_t_t.detach() - state_next_predicted_t)**2
-        curiosity_t                 = self.beta*curiosity_prediction_dif.mean(dim=1).detach()
-        
+        curiosity_prediction_t      = self._curiosity(state_t, action_one_hot_t)
+        curiosity_t                 = self.beta*curiosity_prediction_t.detach()
+       
         #train forward model, MSE loss
-        loss_forward = curiosity_prediction_dif.mean()
+        loss_forward = curiosity_prediction_t.mean()
         self.optimizer_forward.zero_grad()
         loss_forward.backward()
         self.optimizer_forward.step()
@@ -113,7 +110,7 @@ class AgentDQNCuriosity():
         q_target         = q_predicted.clone()
         for j in range(self.batch_size): 
             action_idx              = action_t[j] 
-            q_target[j][action_idx] = reward_t[j] + curiosity_t[j] + self.gamma*torch.max(q_predicted_next[j])*(1- done_t[j])
+            q_target[j][action_idx] = reward_t[j] + curiosity_t[j] + self.gamma*torch.max(q_predicted_next[j])*(1 - done_t[j])
  
         #train DQN model
         loss_dqn  = (q_target.detach() - q_predicted)**2
@@ -128,6 +125,33 @@ class AgentDQNCuriosity():
         k = 0.02
         self.loss_forward           = (1.0 - k)*self.loss_forward        + k*loss_forward.detach().to("cpu").numpy()
         self.internal_motivation    = (1.0 - k)*self.internal_motivation + k*curiosity_t.mean().detach().to("cpu").numpy()
+
+        #print(">>> ", self.loss_forward, self.internal_motivation)
+    
+    def save(self, save_path):
+        self.model_dqn.save(save_path + "trained/")
+        self.model_forward.save(save_path + "trained/")
+        self.model_forward_target.save(save_path + "trained/")
+
+    def load(self, save_path):
+        self.model_dqn.load(save_path + "trained/")
+        self.model_forward.load(save_path + "trained/")
+        self.model_forward_target.save(save_path + "trained/")
+
+    def get_log(self):
+        result = "" 
+        result+= str(round(self.loss_forward, 7)) + " "
+        result+= str(round(self.internal_motivation, 7)) + " "
+        return result
+
+    def _action_one_hot(self, action_idx_t):
+        batch_size = action_idx_t.shape[0]
+
+        action_one_hot_t = torch.zeros((batch_size, self.actions_count))
+        action_one_hot_t[range(batch_size), action_idx_t] = 1.0  
+        action_one_hot_t = action_one_hot_t.to(self.model_dqn.device)
+
+        return action_one_hot_t
 
     def _sample_action(self, state_t, epsilon):
 
@@ -158,27 +182,11 @@ class AgentDQNCuriosity():
 
         return action_idx_np, action_one_hot_t
 
-    def _action_one_hot(self, action_idx_t):
-        batch_size = action_idx_t.shape[0]
+    def _curiosity(self, state_t, action_one_hot_t):
+        state_next_predicted_t       = self.model_forward(state_t, action_one_hot_t)
+        state_next_predicted_t_t     = self.model_forward_target(state_t, action_one_hot_t)
 
-        action_one_hot_t = torch.zeros((batch_size, self.actions_count))
-        action_one_hot_t[range(batch_size), action_idx_t] = 1.0  
-        action_one_hot_t = action_one_hot_t.to(self.model_dqn.device)
+        curiosity_t    = (state_next_predicted_t_t.detach() - state_next_predicted_t)**2
+        curiosity_t    = curiosity_t.mean(dim=1)
 
-        return action_one_hot_t
-
-    def save(self, save_path):
-        self.model_dqn.save(save_path + "trained/")
-        self.model_forward.save(save_path + "trained/")
-        self.model_forward_target.save(save_path + "trained/")
-
-    def load(self, save_path):
-        self.model_dqn.load(save_path + "trained/")
-        self.model_forward.load(save_path + "trained/")
-        self.model_forward_target.save(save_path + "trained/")
-
-    def get_log(self):
-        result = "" 
-        result+= str(round(self.loss_forward, 7)) + " "
-        result+= str(round(self.internal_motivation, 7)) + " "
-        return result
+        return curiosity_t

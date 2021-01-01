@@ -1,6 +1,6 @@
-import time
 import gym
-import gym_super_mario_bros
+import numpy
+import time
 import sys
 sys.path.insert(0, '../..')
 
@@ -19,6 +19,7 @@ path = "models/dqn_curiosity/"
 env = gym.make("SuperMarioBros-v0")
 env = SuperMarioWrapper(env)
 env.reset()
+
 
 agent = libs_agents.AgentDQNCuriosity(env, ModelDQN, ModelForward, ModelForwardTarget, Config)
 

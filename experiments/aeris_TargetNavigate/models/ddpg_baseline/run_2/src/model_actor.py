@@ -52,11 +52,11 @@ class Model(torch.nn.Module):
      
     def save(self, path):
         print("saving to ", path)
-        torch.save(self.model.state_dict(), path + "trained/model_actor.pt")
+        torch.save(self.model.state_dict(), path + "model_actor.pt")
 
     def load(self, path):       
         print("loading from ", path)
-        self.model.load_state_dict(torch.load(path + "trained/model_actor.pt", map_location = self.device))
+        self.model.load_state_dict(torch.load(path + "model_actor.pt", map_location = self.device))
         self.model.eval()  
     
 if __name__ == "__main__":

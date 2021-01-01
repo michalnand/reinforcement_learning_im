@@ -49,29 +49,31 @@ class ExperienceBufferGoals():
         done_t          = torch.from_numpy(numpy.take(self.done_b,      indices, axis=0)).to(device)
         ir_t            = torch.from_numpy(numpy.take(self.ir_b,        indices, axis=0)).to(device)
 
+       
         #create states sequence, starting from "now position", take sequence_length samples into past
         states_seq_t    = torch.zeros((self.sequence_length, batch_size) + self.state_shape).to(device)
-        
-        #values if intrinsics motivation
-        ir_values       = numpy.zeros((self.sequence_length, batch_size))
-
+               
         for j in range(self.sequence_length):
             indices_        = (indices - j)%self.size
             states_seq_t[j] = torch.from_numpy(numpy.take(self.state_b, indices_, axis=0)).to(device)
             
-            ir_values[j]    = numpy.take(self.ir_b, indices_, axis=0)
-
         #transpose to shape : batch, sequence_length, state_shape
         states_seq_t = states_seq_t.transpose(0, 1)
-        
+     
+        #future values of rewards
+        reward_values       = numpy.zeros((self.sequence_length, batch_size))
+        for j in range(self.sequence_length):
+            indices_        = (indices + j)%self.size
+            reward_values[j]    = numpy.take(self.reward_b, indices_, axis=0) + numpy.take(self.ir_b, indices_, axis=0)
+      
         #transpose to shape : batch, sequence_length
-        ir_values     = numpy.transpose(ir_values)
+        reward_values     = numpy.transpose(reward_values)
 
         #relative indices into absolute indices
-        #take the state indices with highest ir
-        goals_indices = (indices - numpy.argmax(ir_values, axis=1))%self.size
+        #take the future state indices with highest reward
+        goals_indices = (indices + numpy.argmax(reward_values, axis=1))%self.size
 
-        #take goal state
-        goal_t        = torch.from_numpy(numpy.take(self.state_b,     goals_indices, axis=0)).to(device)
-        
+        #take future goal state
+        goal_t        = torch.from_numpy(numpy.take(self.state_b, goals_indices, axis=0)).to(device)
+
         return state_t, state_next_t, states_seq_t, goal_t, action_t, reward_t, done_t, ir_t

@@ -8,9 +8,6 @@ class RLStatsCompute:
         data = self.load_files(files_list)
         self.process_stats(data, destination_file)
 
-
-  
-
     def load_files(self, files_list):
         data      = []
       
@@ -25,19 +22,6 @@ class RLStatsCompute:
         
 
     def compute_stats(self, data, confidence = 0.95):
-
-        '''
-        count   = data.shape[0]
-        alpha   = 1.0 - confidence
-        t       = stats.t.ppf(1.0 - alpha/2.0, count - 1)  
-    
-        mean = numpy.mean(data, axis = 0)
-        std  = numpy.std(data, ddof=1, axis = 0)
-
-        lower = mean - (t * std/ numpy.sqrt(count))
-        upper = mean + (t * std/ numpy.sqrt(count))
-        '''
-
         n       = data.shape[0]
 
         mean    = numpy.mean(data, axis = 0)
@@ -61,15 +45,14 @@ class RLStatsCompute:
         episode_score       = data[4]
 
 
-        if data.shape[0] == 14:
+        if data.shape[0] == 11:
             self.forward_loss_mean, self.forward_loss_std, self.forward_loss_lower, self.forward_loss_upper = self.compute_stats(data[9])
-            self.entropy_mean, self.entropy_std, self.entropy_lower, self.entropy_upper                     = self.compute_stats(data[12])
-            self.curiosity_mean, self.curiosity_std, self.curiosity_lower, self.curiosity_upper             = self.compute_stats(data[13])
+            self.curiosity_mean, self.curiosity_std, self.curiosity_lower, self.curiosity_upper             = self.compute_stats(data[10])
 
-        if data.shape[0] == 13:
+        if data.shape[0] == 12:
             self.forward_loss_mean, self.forward_loss_std, self.forward_loss_lower, self.forward_loss_upper = self.compute_stats(data[9])
-            self.entropy_mean, self.entropy_std, self.entropy_lower, self.entropy_upper                     = self.compute_stats(data[11])
-            self.curiosity_mean, self.curiosity_std, self.curiosity_lower, self.curiosity_upper             = self.compute_stats(data[12])
+            self.goal_loss_mean, self.goal_loss_std, self.goal_loss_lower, self.goal_loss_upper = self.compute_stats(data[10])
+            self.curiosity_mean, self.curiosity_std, self.curiosity_lower, self.curiosity_upper             = self.compute_stats(data[11])
 
         self.per_iteration_score = total_score/self.iterations
 

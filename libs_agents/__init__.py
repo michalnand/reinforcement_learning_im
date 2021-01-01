@@ -3,12 +3,12 @@ from .AgentRandomContinuous         import *
 
 from .AgentDQN                      import *
 from .AgentDQNCuriosity             import *
-from .AgentDQNCuriosityGoals        import *
+from .AgentDQNCuriosityImagination  import *
 from .AgentDQNDuel                  import *
 
 from .AgentDDPG                     import *
 from .AgentDDPGCuriosity            import *
-from .AgentDDPGCuriousGoals         import *
+from .AgentDDPGCuriosityImagination import *
 
 from .AgentA2C                      import *
 from .AgentA2CContinuous            import *

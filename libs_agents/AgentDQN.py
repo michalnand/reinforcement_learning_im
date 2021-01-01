@@ -80,19 +80,6 @@ class AgentDQN():
         self.iterations+= 1
 
         return self.reward, done
-    
-    def _show_activity(self, state, alpha = 0.6):
-        activity_map    = self.model.get_activity_map(state)
-        activity_map    = numpy.stack((activity_map,)*3, axis=-1)*[0, 0, 1]
-
-        state_map    = numpy.stack((state[0],)*3, axis=-1)
-        image        = alpha*state_map + (1.0 - alpha)*activity_map
-
-        image        = (image - image.min())/(image.max() - image.min())
-
-        image = cv2.resize(image, (400, 400), interpolation = cv2.INTER_AREA)
-        cv2.imshow('state activity', image)
-        cv2.waitKey(1)
         
     def train_model(self):
         state_t, state_next_t, action_t, reward_t, done_t, _ = self.experience_replay.sample(self.batch_size, self.model.device)
@@ -117,7 +104,12 @@ class AgentDQN():
             param.grad.data.clamp_(-10.0, 10.0)
         self.optimizer.step()
 
-       
+    def save(self, save_path):
+        self.model.save(save_path + "trained/")
+
+    def load(self, save_path):
+        self.model.load(save_path + "trained/")
+    
     def _sample_action(self, state_t, epsilon):
 
         batch_size = state_t.shape[0]
@@ -147,12 +139,15 @@ class AgentDQN():
 
         return action_idx_np, action_one_hot_t
 
-    def save(self, save_path):
-        self.model.save(save_path + "trained/")
+    def _show_activity(self, state, alpha = 0.6):
+        activity_map    = self.model.get_activity_map(state)
+        activity_map    = numpy.stack((activity_map,)*3, axis=-1)*[0, 0, 1]
 
-    def load(self, save_path):
-        self.model.load(save_path + "trained/")
-    
+        state_map    = numpy.stack((state[0],)*3, axis=-1)
+        image        = alpha*state_map + (1.0 - alpha)*activity_map
 
+        image        = (image - image.min())/(image.max() - image.min())
 
-
+        image = cv2.resize(image, (400, 400), interpolation = cv2.INTER_AREA)
+        cv2.imshow('state activity', image)
+        cv2.waitKey(1)

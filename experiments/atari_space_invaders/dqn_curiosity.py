@@ -16,7 +16,7 @@ import models.dqn_curiosity.src.config                      as Config
 
 path = "models/dqn_curiosity/"
 
-env = gym.make("SpaceInvaders-v4")
+env = gym.make("SpaceInvadersNoFrameskip-v4")
 
 env = AtariWrapper(env)
 env.reset()
