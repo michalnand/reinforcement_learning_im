@@ -51,8 +51,8 @@ class RLStatsCompute:
 
         if data.shape[0] == 12:
             self.forward_loss_mean, self.forward_loss_std, self.forward_loss_lower, self.forward_loss_upper = self.compute_stats(data[9])
-            self.goal_loss_mean, self.goal_loss_std, self.goal_loss_lower, self.goal_loss_upper = self.compute_stats(data[10])
-            self.curiosity_mean, self.curiosity_std, self.curiosity_lower, self.curiosity_upper             = self.compute_stats(data[11])
+            self.curiosity_mean, self.curiosity_std, self.curiosity_lower, self.curiosity_upper             = self.compute_stats(data[10])
+            self.entropy_mean, self.entropy_std, self.entropy_lower, self.entropy_upper                     = self.compute_stats(data[11])
 
         self.per_iteration_score = total_score/self.iterations
 

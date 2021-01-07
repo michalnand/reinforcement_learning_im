@@ -7,12 +7,11 @@ class Config():
         self.critic_learning_rate   = 0.0002
         self.actor_learning_rate    = 0.0001
         self.forward_learning_rate  = 0.0002
+        self.reward_learning_rate   = 0.0004
         self.tau                    = 0.001
 
         self.beta_curiosity         = 10.0
-        self.beta_imagination       = 10.0
-
-        self.rollouts               = 16
+        self.rollouts               = 8
 
         self.batch_size          = 64
         self.update_frequency    = 4

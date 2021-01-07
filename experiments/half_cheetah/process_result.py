@@ -22,6 +22,11 @@ files = []
 files.append("./models/ddpg_curiosity/run_0/result/result.log")
 files.append("./models/ddpg_curiosity/run_1/result/result.log")
 files.append("./models/ddpg_curiosity/run_2/result/result.log")
+files.append("./models/ddpg_curiosity/run_3/result/result.log")
+files.append("./models/ddpg_curiosity/run_4/result/result.log")
+files.append("./models/ddpg_curiosity/run_5/result/result.log")
+files.append("./models/ddpg_curiosity/run_6/result/result.log")
+files.append("./models/ddpg_curiosity/run_7/result/result.log")
 rl_stats_compute_curiosity = RLStatsCompute(files, result_path + "ddpg_curiosity.log") 
 
 

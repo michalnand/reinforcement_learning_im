@@ -14,13 +14,14 @@ import models.ddpg_curiosity_imagination.model.src.model_critic     as ModelCrit
 import models.ddpg_curiosity_imagination.model.src.model_actor      as ModelActor
 import models.ddpg_curiosity_imagination.model.src.model_forward      as ModelForward
 import models.ddpg_curiosity_imagination.model.src.model_forward_target      as ModelForwardTarget
+import models.ddpg_curiosity_imagination.model.src.model_reward      as ModelReward
 import models.ddpg_curiosity_imagination.model.src.config           as Config
 
 path = "models/ddpg_curiosity_imagination/model/"
 
 env = gym.make("TargetNavigate-v0", render = False)
 
-agent = libs_agents.AgentDDPGCuriosityImagination(env, ModelCritic, ModelActor, ModelForward, ModelForwardTarget, Config)
+agent = libs_agents.AgentDDPGCuriosityImagination(env, ModelCritic, ModelActor, ModelForward, ModelForwardTarget, ModelReward, Config)
 
 max_iterations = 1*(10**6)
 trainig = TrainingIterations(env, agent, max_iterations, path, 10000)

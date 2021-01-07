@@ -16,9 +16,9 @@ import models.ddpg_curiosity.model.src.model_forward      as ModelForward
 import models.ddpg_curiosity.model.src.model_forward_target      as ModelForwardTarget
 import models.ddpg_curiosity.model.src.config           as Config
 
-path = "models/ddpg_curiosity/model/"
+path = "models/ddpg_curiosity/run_0/"
 
-env = gym.make("TargetNavigate-v0", render = False)
+env = gym.make("TargetNavigate-v0", render = True)
 
 agent = libs_agents.AgentDDPGCuriosity(env, ModelCritic, ModelActor, ModelForward, ModelForwardTarget, Config)
 

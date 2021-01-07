@@ -56,16 +56,16 @@ class AgentDQNCuriosity():
         else:
             epsilon = self.exploration.get_testing()
              
-        state_t             = torch.from_numpy(self.state).to(self.model_dqn.device).unsqueeze(0).float()
-        
-        action_idx_np, action_one_hot_t   = self._sample_action(state_t, epsilon)
+        state_t     = torch.from_numpy(self.state).to(self.model_dqn.device).unsqueeze(0).float()
+        q_values_t  = self.model_dqn(state_t)
+        q_values_np = q_values_t.squeeze(0).detach().to("cpu").numpy()
 
-        self.action = action_idx_np[0]
+        action      = self._sample_action(q_values_np, epsilon)
 
-        state_next, self.reward, done, self.info = self.env.step(self.action)
+        state_next, self.reward, done, self.info = self.env.step(action)
  
         if self.enabled_training:
-            self.experience_replay.add(self.state, self.action, self.reward, done, 0)
+            self.experience_replay.add(self.state, action, self.reward, done, 0)
 
 
         if self.enabled_training and (self.iterations > self.experience_replay.size):
@@ -153,34 +153,13 @@ class AgentDQNCuriosity():
 
         return action_one_hot_t
 
-    def _sample_action(self, state_t, epsilon):
+    def _sample_action(self, q_values, epsilon):
+        if numpy.random.rand() < epsilon:
+            action_idx = numpy.random.randint(self.actions_count)
+        else:
+            action_idx = numpy.argmax(q_values)
 
-        batch_size = state_t.shape[0]
-
-        q_values_t          = self.model_dqn(state_t).to("cpu")
-
-        #best actions indices
-        q_max_indices_t     = torch.argmax(q_values_t, dim = 1)
-
-        #random actions indices
-        q_random_indices_t  = torch.randint(self.actions_count, (batch_size,))
-
-        #create mask, which actions will be from q_random_indices_t and which from q_max_indices_t
-        select_random_mask_t= torch.tensor((torch.rand(batch_size) < epsilon).clone(), dtype = int)
-
-        #apply mask
-        action_idx_t    = select_random_mask_t*q_random_indices_t + (1 - select_random_mask_t)*q_max_indices_t
-        action_idx_t    = torch.tensor(action_idx_t, dtype=int)
-
-        #create one hot encoding
-        action_one_hot_t = torch.zeros((batch_size, self.actions_count))
-        action_one_hot_t[range(batch_size), action_idx_t] = 1.0  
-        action_one_hot_t = action_one_hot_t.to(self.model_dqn.device)
-
-        #numpy result
-        action_idx_np       = action_idx_t.detach().to("cpu").numpy().astype(dtype=int)
-
-        return action_idx_np, action_one_hot_t
+        return action_idx
 
     def _curiosity(self, state_t, action_one_hot_t):
         state_next_predicted_t       = self.model_forward(state_t, action_one_hot_t)

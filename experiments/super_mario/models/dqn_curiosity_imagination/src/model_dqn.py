@@ -122,6 +122,21 @@ class Model(torch.nn.Module):
 
         return result
 
+    def eval_rollouts(self, state, rollouts):
+        batch_size = state.shape[0]
+        
+        features = self.model_features(state) 
+
+        result = torch.zeros((rollouts, batch_size, self.outputs_count))
+        for r in range(rollouts):
+            value       = self.model_value(features)
+            advantage   = self.model_advantage(features)
+
+            result[r] = value + advantage - advantage.mean(dim=1, keepdim=True)
+
+        return result
+
+
     def save(self, path):
         print("saving ", path)
 
@@ -171,14 +186,15 @@ if __name__ == "__main__":
 
 
     state   = torch.rand((batch_size, channels, height, width))
-    goal    = torch.rand((batch_size, channels, height, width))
 
     model = Model((channels, height, width), actions_count)
 
 
-    q_values = model.forward(state, goal)
-
+    q_values = model.forward(state)
     print(q_values.shape)
+
+    q_values_rollouts = model.eval_rollouts(state, 16)
+    print(q_values_rollouts.shape)
 
 
 

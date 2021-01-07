@@ -11,6 +11,7 @@ from libs_common.atari_wrapper import *
 import models.dqn_curiosity_imagination.src.model_dqn             as ModelDQN
 import models.dqn_curiosity_imagination.src.model_forward         as ModelForward
 import models.dqn_curiosity_imagination.src.model_forward_target  as ModelForwardTarget
+import models.dqn_curiosity_imagination.src.model_reward          as ModelReward
 import models.dqn_curiosity_imagination.src.config                as Config
 
 
@@ -22,7 +23,7 @@ env = AtariWrapper(env)
 env.reset()
 
 
-agent = libs_agents.AgentDQNCuriosityImagination(env, ModelDQN, ModelForward, ModelForwardTarget, Config)
+agent = libs_agents.AgentDQNCuriosityImagination(env, ModelDQN, ModelForward, ModelForwardTarget, ModelReward, Config)
 
 max_iterations = 6*(10**6) 
 

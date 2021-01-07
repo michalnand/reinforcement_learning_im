@@ -35,7 +35,7 @@ while True:
     time_start = time.time()
     reward, done = agent.main()
     time_stop  = time.time()
-    env.render()
+    #env.render()
 
     fps = (1.0-k)*fps + k*1.0/(time_stop - time_start)
 
@@ -47,9 +47,10 @@ while True:
         zero_rewards+= 1
 
     ratio = non_zero_rewards/(non_zero_rewards + zero_rewards)
-    #print("rewards_ratio = ", ratio*100.0)
+    
     
     if done:
+        print("non zero rewards_ratio = ", ratio*100.0)
         print("FPS = ", round(fps, 1))
         print("DONE \n\n")
     

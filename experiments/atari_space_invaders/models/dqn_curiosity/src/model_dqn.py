@@ -171,12 +171,11 @@ if __name__ == "__main__":
 
 
     state   = torch.rand((batch_size, channels, height, width))
-    goal    = torch.rand((batch_size, channels, height, width))
 
     model = Model((channels, height, width), actions_count)
 
 
-    q_values = model.forward(state, goal)
+    q_values = model.forward(state)
 
     print(q_values.shape)
 

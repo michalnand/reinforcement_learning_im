@@ -68,10 +68,10 @@ class AgentDDPGCuriosity():
  
         action = action.squeeze()
 
-        state_next, self.reward, done, self.info = self.env.step(action)
+        state_next, reward, done, self.info = self.env.step(action)
 
         if self.enabled_training: 
-            self.experience_replay.add(self.state, action, self.reward, done)
+            self.experience_replay.add(self.state, action, reward, done)
 
         if self.enabled_training and self.iterations > 0.1*self.experience_replay.size:
             if self.iterations%self.update_frequency == 0:
@@ -84,7 +84,7 @@ class AgentDDPGCuriosity():
 
         self.iterations+= 1
 
-        return self.reward, done
+        return reward, done
         
         
     def train_model(self):

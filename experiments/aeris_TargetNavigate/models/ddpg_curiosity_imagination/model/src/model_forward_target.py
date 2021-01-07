@@ -51,19 +51,3 @@ class Model(torch.nn.Module):
         print("loading from ", path)
         self.model.load_state_dict(torch.load(path + "model_forward_target.pt", map_location = self.device))
         self.model.eval()  
-
-
-
-if __name__ == "__main__":
-    batch_size      = 1
-    input_shape     = (6, 32)
-    outputs_count   = 5
-
-    model = Model(input_shape, outputs_count)
-
-    state   = torch.randn((batch_size, ) + input_shape)
-    action  = torch.randn((batch_size, outputs_count))
-
-    y = model.forward(state, action)
-
-    print(y.shape)

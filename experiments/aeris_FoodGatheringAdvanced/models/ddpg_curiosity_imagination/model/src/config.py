@@ -10,14 +10,13 @@ class Config():
         self.tau                    = 0.001
 
         self.beta_curiosity         = 10.0
-        self.beta_imagination       = 10.0
-
+        self.beta_entropy           = 0.001
         self.rollouts               = 16
 
         self.batch_size          = 64
         self.update_frequency    = 4
 
         self.exploration   = libs_common.decay.Const(0.05, 0.05)
-        
+
         self.experience_replay_size = 200000
 
