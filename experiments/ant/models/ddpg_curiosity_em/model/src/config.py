@@ -16,4 +16,4 @@ class Config():
 
         self.exploration   = libs_common.decay.Linear(1000000, 0.3, 0.05, 0.05)
 
-        self.experience_replay_size = 200000
+        self.experience_replay_size = 1024 #200000

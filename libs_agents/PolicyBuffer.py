@@ -4,12 +4,10 @@ import numpy
 
 class PolicyBuffer:
 
-    def __init__(self, buffer_size, state_shape, actions_size, device, multi_value_buffer = False):
+    def __init__(self, buffer_size, state_shape, actions_size):
         self.buffer_size    = buffer_size
         self.state_shape    = state_shape
         self.actions_size   = actions_size
-        self.device         = device
-        self.multi_value_buffer = multi_value_buffer
 
         self.clear()
 
@@ -31,47 +29,52 @@ class PolicyBuffer:
             return True
 
         return False 
-
+ 
     def clear(self):
-        self.states_b           = torch.zeros((self.buffer_size, ) + self.state_shape).to(self.device)
-        self.logits_b           = torch.zeros((self.buffer_size, self.actions_size)).to(self.device)
+        self.states_b           = numpy.zeros((self.buffer_size, ) + self.state_shape, dtype=float)
+        self.logits_b           = numpy.zeros((self.buffer_size, self.actions_size), dtype=float)
         
-        if self.multi_value_buffer:
-            self.values_b           = torch.zeros((self.buffer_size, self.actions_size)).to(self.device)
-        else:
-            self.values_b           = torch.zeros((self.buffer_size, 1)).to(self.device)
+        self.values_b           = numpy.zeros((self.buffer_size, ), dtype=float)
 
-        self.actions_b          = torch.zeros((self.buffer_size, ), dtype=int).to(self.device)
-        self.rewards_b          = torch.zeros((self.buffer_size, )).to(self.device)
-        self.dones_b            = torch.zeros((self.buffer_size, )).to(self.device)
+        self.actions_b          = numpy.zeros((self.buffer_size, ), dtype=int)
+        self.rewards_b          = numpy.zeros((self.buffer_size, ), dtype=float)
+        self.dones_b            = numpy.zeros((self.buffer_size, ), dtype=float)
        
-        self.returns_b         = torch.zeros((self.buffer_size, )).to(self.device)
+        self.returns_b          = numpy.zeros((self.buffer_size, ), dtype=float)
+        self.advantages_b       = numpy.zeros((self.buffer_size, ), dtype=float)
 
         self.ptr = 0 
 
-    def cut_zeros(self):
-        self.states_b           = self.states_b[0:self.ptr]
-        self.logits_b           = self.logits_b[0:self.ptr]
-        self.values_b           = self.values_b[0:self.ptr]
-        self.actions_b          = self.actions_b[0:self.ptr]
-        self.rewards_b          = self.rewards_b[0:self.ptr]
-        self.dones_b            = self.dones_b[0:self.ptr]
-       
-        self.returns_b         = self.returns_b[0:self.ptr]
 
-
-    def compute_returns(self, gamma, normalise = False):
-        
-        if normalise:
-            self.rewards_b = (self.rewards_b - self.rewards_b.mean())/(self.rewards_b.std() + 0.00001)
-        
-        q = 0.0
-        for n in reversed(range(len(self.rewards_b))):
-
-            if self.dones_b[n]:
+    def compute_gae_returns(self, gamma, lam = 0.95):
+           
+        gae  = 0.0
+        for n in reversed(range(len(self.rewards_b)-1)):
+            if self.dones_b[n] > 0:
                 gamma_ = 0.0
             else:
                 gamma_ = gamma
 
-            q = self.rewards_b[n] + gamma_*q
-            self.returns_b[n] = q
+            delta = self.rewards_b[n] + gamma_*self.values_b[n+1] - self.values_b[n]
+
+            gae = delta + lam*gamma_*gae
+
+            self.returns_b[n] = gae + self.values_b[n]
+
+        self.advantages_b = self.returns_b - self.values_b
+        self.advantages_b = (self.advantages_b - numpy.mean(self.advantages_b))/(numpy.std(self.advantages_b) + 1e-10)
+
+
+    def sample_batch(self, batch_size, device):
+        indices         = torch.from_numpy(numpy.random.randint(0, self.buffer_size,    size=batch_size))
+
+        states      = torch.from_numpy(numpy.take(self.states_b,     indices,  axis=0)).to(device).float()
+        logits      = torch.from_numpy(numpy.take(self.logits_b,     indices,  axis=0)).to(device).float()
+        values      = torch.from_numpy(numpy.take(self.values_b,     indices,  axis=0)).to(device).float()
+        actions     = torch.from_numpy(numpy.take(self.actions_b,    indices,  axis=0)).to(device)
+        rewards     = torch.from_numpy(numpy.take(self.rewards_b,    indices,  axis=0)).to(device).float()
+        dones       = torch.from_numpy(numpy.take(self.dones_b,      indices,  axis=0)).to(device).float()
+        returns     = torch.from_numpy(numpy.take(self.returns_b,    indices,  axis=0)).to(device).float()
+        advantages  = torch.from_numpy(numpy.take(self.advantages_b, indices,  axis=0)).to(device).float()
+
+        return states, logits, values, actions, rewards, dones, returns, advantages

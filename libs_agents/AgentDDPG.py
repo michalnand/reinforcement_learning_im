@@ -9,9 +9,9 @@ class AgentDDPG():
 
         config = Config.Config()
 
-        self.batch_size     = config.batch_size
-        self.gamma          = config.gamma
-        self.update_frequency = config.update_frequency
+        self.batch_size         = config.batch_size
+        self.gamma              = config.gamma
+        self.update_frequency   = config.update_frequency
         self.tau                =  config.tau
 
         self.exploration    = config.exploration
@@ -76,7 +76,6 @@ class AgentDDPG():
             self.state = state_new.copy()
 
         self.iterations+= 1
-
         return reward, done
         
         

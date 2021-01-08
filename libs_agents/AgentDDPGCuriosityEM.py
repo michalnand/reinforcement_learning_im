@@ -40,13 +40,11 @@ class AgentDDPGCuriosityEM():
         self.model_reachability       = ModelReachability.Model(self.state_shape)
         self.optimizer_reachability   = torch.optim.Adam(self.model_reachability.parameters(), lr= config.learning_rate_reachability)
 
-
         self.state          = env.reset()
 
         self.iterations     = 0
 
         self.enable_training()
-
 
         self.episodic_memory_size   = config.episodic_memory_size 
         self._init_episodic_memory(self.state)
@@ -75,9 +73,8 @@ class AgentDDPGCuriosityEM():
 
         state_new, reward, done, self.info = self.env.step(action)
 
-        _, _, motivation = self._reachability(state_t)
-
         if self.enabled_training:
+            _, _, motivation = self._reachability(state_t)
             self.experience_replay.add(self.state, action, reward, done, motivation)
 
         if self.enabled_training and self.iterations > 0.1*self.experience_replay.size:
@@ -131,7 +128,6 @@ class AgentDDPGCuriosityEM():
         for target_param, param in zip(self.model_critic_target.parameters(), self.model_critic.parameters()):
             target_param.data.copy_((1.0 - self.tau)*target_param.data + self.tau*param.data)
 
-
         #train reachability prediction model
         states_a_t, states_b_t, reachability_t  = self.experience_replay.sample_reachable_pairs(self.batch_size, device=self.model_reachability.device)
 
@@ -150,7 +146,6 @@ class AgentDDPGCuriosityEM():
 
         #print(">>> ", loss_reachability, self.loss_reachability, self.internal_motivation)
     
-
     def save(self, save_path):
         self.model_critic.save(save_path)
         self.model_actor.save(save_path)
@@ -158,8 +153,13 @@ class AgentDDPGCuriosityEM():
     def load(self, load_path):
         self.model_critic.load(load_path)
         self.model_actor.load(load_path)
-    
 
+    def get_log(self):
+        result = "" 
+        result+= str(round(self.loss_reachability, 7)) + " "
+        result+= str(round(self.internal_motivation, 7)) + " "
+        return result
+    
     def _sample_action(self, state_t, epsilon):
         action_t    = self.model_actor(state_t)
         action_t    = action_t + epsilon*torch.randn(action_t.shape).to(self.model_actor.device)
@@ -171,7 +171,13 @@ class AgentDDPGCuriosityEM():
 
     def _reachability(self, state_t):
         #compute reachability_t, compare with episodic_memory_t
-        state_tmp_t = state_t.repeat(self.episodic_memory_size, 1)
+        if len(self.state_shape) == 1:
+            state_tmp_t = state_t.repeat(self.episodic_memory_size, 1)
+        elif len(self.state_shape) == 2:
+            state_tmp_t = state_t.repeat(self.episodic_memory_size, 1, 1)
+        else: 
+            state_tmp_t = state_t.repeat(self.episodic_memory_size, 1, 1, 1)
+
         reachability_t = self.model_reachability(state_tmp_t, self.episodic_memory_t)
  
         reachability_np = reachability_t.detach().to("cpu").numpy()
@@ -188,5 +194,10 @@ class AgentDDPGCuriosityEM():
  
     def _init_episodic_memory(self, state):   
         state_t                     = torch.from_numpy(state).to(self.model_reachability.device).unsqueeze(0).float()
-        self.episodic_memory_t      = state_t.repeat(self.episodic_memory_size, 1)
      
+        if len(self.state_shape) == 1:
+            self.episodic_memory_t      = state_t.repeat(self.episodic_memory_size, 1)
+        elif len(self.state_shape) == 2:
+            self.episodic_memory_t      = state_t.repeat(self.episodic_memory_size, 1, 1)
+        else: 
+            self.episodic_memory_t      = state_t.repeat(self.episodic_memory_size, 1, 1, 1)

@@ -17,6 +17,7 @@ from .AgentA2CContinuous            import *
 
 
 from .AgentPPO                      import *
+from .AgentPPOCuriosity             import *
  
 
 

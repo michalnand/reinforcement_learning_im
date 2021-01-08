@@ -71,9 +71,9 @@ class AgentDQNCuriosityEM():
 
         state_new, self.reward, done, self.info = self.env.step(action)
 
-        _, _, motivation = self._reachability(state_t)
         
         if self.enabled_training:
+            _, _, motivation = self._reachability(state_t)
             self.experience_replay.add(self.state, action, self.reward, done, motivation)
 
 
