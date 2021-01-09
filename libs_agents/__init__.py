@@ -3,8 +3,8 @@ from .AgentRandomContinuous         import *
 
 from .AgentDQN                      import *
 from .AgentDQNCuriosity             import *
-from .AgentDQNCuriosityImagination  import *
 from .AgentDQNCuriosityEM           import *
+from .AgentDQNCuriosityDreams       import *
 from .AgentDQNDuel                  import *
 
 from .AgentDDPG                     import *

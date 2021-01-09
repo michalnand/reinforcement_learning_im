@@ -184,7 +184,7 @@ class AgentDDPGCuriosityEM():
 
         max_idx = numpy.argmax(reachability_np)
 
-        motivation = self.beta*(1.0 - reachability_np[max_idx])
+        motivation = self.beta*(0.5 - reachability_np[max_idx])
  
         #put current state into episodic memory, on random place
         idx = numpy.random.randint(self.episodic_memory_size)
