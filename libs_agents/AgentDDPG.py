@@ -118,12 +118,12 @@ class AgentDDPG():
 
 
     def save(self, save_path):
-        self.model_critic.save(save_path)
-        self.model_actor.save(save_path)
+        self.model_critic.save(save_path + "trained/")
+        self.model_actor.save(save_path + "trained/")
 
     def load(self, load_path):
-        self.model_critic.load(load_path)
-        self.model_actor.load(load_path)
+        self.model_critic.load(load_path + "trained/")
+        self.model_actor.load(load_path + "trained/")
     
 
     def _sample_action(self, state_t, epsilon):
