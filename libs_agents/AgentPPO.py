@@ -6,32 +6,34 @@ from torch.distributions import Categorical
 from .PolicyBuffer import *
 
 class AgentPPO():
-    def __init__(self, env, Model, Config):
-        self.env = env
+    def __init__(self, envs, Model, Config):
+        self.envs = envs
 
         config = Config.Config()
- 
+
         self.gamma              = config.gamma
         self.entropy_beta       = config.entropy_beta
         self.eps_clip           = config.eps_clip
 
-        self.ppo_steps              = config.ppo_steps
-        self.batch_size             = config.batch_size
-        self.training_epochs        = config.training_epochs
+        self.steps              = config.steps
+        self.batch_size         = config.batch_size        
+        
+        self.training_epochs    = config.training_epochs
+        self.actors             = config.actors
 
-
-        self.state_shape    = self.env.observation_space.shape
-        self.actions_count  = self.env.action_space.n
+        self.state_shape    = self.envs[0].observation_space.shape
+        self.actions_count  = self.envs[0].action_space.n
 
         self.model          = Model.Model(self.state_shape, self.actions_count)
         self.optimizer      = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate)
  
-        self.policy_buffer = PolicyBuffer(self.ppo_steps, self.state_shape, self.actions_count)
+        self.policy_buffer = PolicyBuffer(self.steps, self.state_shape, self.actions_count, self.actors, self.model.device)
 
-        self.state = env.reset()
+        self.states = []
+        for e in range(self.actors):
+            self.states.append(self.envs[e].reset())
 
         self.enable_training()
-        
         self.iterations = 0
 
 
@@ -42,32 +44,34 @@ class AgentPPO():
         self.enabled_training = False
 
     def main(self):
-        state_t   = torch.tensor(self.state, dtype=torch.float32).detach().to(self.model.device).unsqueeze(0)
-        
-        logits_t, value_t   = self.model.forward(state_t)
+        rewards = []
+        dones   = []
 
-        action = self._sample_action(logits_t)
+        states_t            = torch.tensor(self.states, dtype=torch.float).detach().to(self.model.device)
+ 
+        logits_t, values_t  = self.model.forward(states_t)
+
+        for e in range(self.actors):
+            action = self._sample_action(logits_t[e])
+                
+            state, reward, done, _ = self.envs[e].step(action)
             
-        self.state, reward, done, _ = self.env.step(action)
-        
-        if self.enabled_training:
-            state_np    = state_t.squeeze(0).detach().to("cpu").numpy()
-            logits_np   = logits_t.squeeze(0).detach().to("cpu").numpy()
-            value_np    = value_t.squeeze(0).detach().to("cpu").numpy()
-            self.policy_buffer.add(state_np, logits_np, value_np, action, reward, done)
+            if self.enabled_training:
+                self.policy_buffer.add(e, states_t[e], logits_t[e], values_t[e], action, reward, done)
 
-            if self.policy_buffer.is_full():
-                self.train()
-                  
-        if done:
-            self.state = self.env.reset()
+                if self.policy_buffer.is_full():
+                    self.train()
+                    
+            if done:
+                state = self.envs[e].reset()
 
-            if hasattr(self.model, "reset"):
-                self.model.reset()
+            self.states[e] = state
+
+            rewards.append(reward)
+            dones.append(dones)
 
         self.iterations+= 1
-
-        return reward, done
+        return rewards[0], dones[0]
     
     def save(self, save_path):
         self.model.save(save_path + "trained/")
@@ -83,17 +87,17 @@ class AgentPPO():
         return action_t.item() 
     
     def train(self): 
-
         self.policy_buffer.compute_gae_returns(self.gamma)
 
         for e in range(self.training_epochs):
-            states, logits, values, actions, rewards, dones, returns, advantages = self.policy_buffer.sample_batch(self.batch_size, self.model.device)
+            states, logits, values, actions, rewards, dones, returns, advantages = self.policy_buffer.sample_batch(self.batch_size)
+
             loss = self._compute_loss(states, logits, actions, returns, advantages)
 
             self.optimizer.zero_grad()        
             loss.backward()
             for param in self.model.parameters():
-                param.grad.data.clamp_(-10.0, 10.0)
+                param.grad.data.clamp_(-0.5, 0.5)
             self.optimizer.step() 
 
         self.policy_buffer.clear()   
@@ -112,7 +116,7 @@ class AgentPPO():
         compute critic loss, as MSE
         L = (T - V(s))^2
         '''
-        loss_value = (returns - values_new)**2
+        loss_value = (returns.detach() - values_new)**2
         loss_value = loss_value.mean()
 
         ''' 
@@ -122,8 +126,8 @@ class AgentPPO():
         log_probs_old_  = log_probs_old[range(len(log_probs_old)), actions]
                         
         ratio       = torch.exp(log_probs_ - log_probs_old_)
-        p1          = ratio*advantages
-        p2          = torch.clamp(ratio, 1.0 - self.eps_clip, 1.0 + self.eps_clip)*advantages
+        p1          = ratio*advantages.detach()
+        p2          = torch.clamp(ratio, 1.0 - self.eps_clip, 1.0 + self.eps_clip)*advantages.detach()
         loss_policy = -torch.min(p1, p2)  
         loss_policy = loss_policy.mean()
     

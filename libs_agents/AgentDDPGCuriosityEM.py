@@ -147,13 +147,13 @@ class AgentDDPGCuriosityEM():
         #print(">>> ", loss_reachability, self.loss_reachability, self.internal_motivation)
     
     def save(self, save_path):
-        self.model_critic.save(save_path)
-        self.model_actor.save(save_path)
+        self.model_critic.save(save_path + "trained/")
+        self.model_actor.save(save_path + "trained/")
 
     def load(self, load_path):
-        self.model_critic.load(load_path)
-        self.model_actor.load(load_path)
-
+        self.model_critic.load(load_path + "trained/")
+        self.model_actor.load(load_path + "trained/")
+ 
     def get_log(self):
         result = "" 
         result+= str(round(self.loss_reachability, 7)) + " "

@@ -6,44 +6,42 @@ from torch.distributions import Categorical
 from .PolicyBuffer import *
 
 class AgentPPOCuriosity():
-    def __init__(self, env, Model, ModelForward, ModelForwardTarget, Config):
-        self.env = env
+    def __init__(self, envs, Model, ModelForward, ModelForwardTarget, Config):
+        self.envs = envs
 
         config = Config.Config()
- 
+
         self.gamma              = config.gamma
         self.entropy_beta       = config.entropy_beta
         self.eps_clip           = config.eps_clip
 
-        self.ppo_steps              = config.ppo_steps
-        self.batch_size             = config.batch_size
-        self.training_epochs        = config.training_epochs
+        self.steps              = config.steps
+        self.batch_size         = config.batch_size        
+        
+        self.training_epochs    = config.training_epochs
+        self.actors             = config.actors
 
         self.beta               = config.beta
 
+        self.state_shape    = self.envs[0].observation_space.shape
+        self.actions_count  = self.envs[0].action_space.n
 
-        self.state_shape    = self.env.observation_space.shape
-        self.actions_count  = self.env.action_space.n
-
-        self.model_ppo      = Model.Model(self.state_shape, self.actions_count)
-        self.optimizer_ppo  = torch.optim.Adam(self.model_ppo.parameters(), lr=config.learning_rate_ppo)
- 
-        self.policy_buffer = PolicyBuffer(self.ppo_steps, self.state_shape, self.actions_count)
-
+        self.model_ppo          = Model.Model(self.state_shape, self.actions_count)
+        self.optimizer_ppo      = torch.optim.Adam(self.model_ppo.parameters(), lr=config.learning_rate_ppo)
 
         self.model_forward          = ModelForward.Model(self.state_shape, self.actions_count)
         self.model_forward_target   = ModelForwardTarget.Model(self.state_shape, self.actions_count)
         self.optimizer_forward      = torch.optim.Adam(self.model_forward.parameters(), lr=config.learning_rate_forward)
 
 
-        self.state = env.reset()
+        self.policy_buffer = PolicyBuffer(self.steps, self.state_shape, self.actions_count, self.actors, self.model_ppo.device)
+
+        self.states = []
+        for e in range(self.actors):
+            self.states.append(self.envs[e].reset())
 
         self.enable_training()
-        
         self.iterations = 0
-
-        self.loss_forward             = 0.0
-        self.internal_motivation      = 0.0
 
 
     def enable_training(self):
@@ -53,99 +51,75 @@ class AgentPPOCuriosity():
         self.enabled_training = False
 
     def main(self):
-        state_t   = torch.tensor(self.state, dtype=torch.float32).detach().to(self.model_ppo.device).unsqueeze(0)
-        
-        logits_t, value_t   = self.model_ppo.forward(state_t)
+        rewards = []
+        dones   = []
 
-        action = self._sample_action(logits_t)
+        states_t            = torch.tensor(self.states, dtype=torch.float).detach().to(self.model_ppo.device)
+ 
+        logits_t, values_t  = self.model_ppo.forward(states_t)
+
+        for e in range(self.actors):
+            action = self._sample_action(logits_t[e])
+                
+            state, reward, done, _ = self.envs[e].step(action)
             
-        self.state, reward, done, _ = self.env.step(action)
-        
-        if self.enabled_training:
-            action_one_hot_t            = torch.zeros(1, self.actions_count).to(self.model_forward.device)
-            action_one_hot_t[0][action] = 1.0
+            if self.enabled_training:
+                self.policy_buffer.add(e, states_t[e], logits_t[e], values_t[e], action, reward, done)
 
-            curiosity_prediction_t      = self._curiosity(state_t, action_one_hot_t)
-            curiosity_t                 = self.beta*curiosity_prediction_t
-            curiosity                   = curiosity_t.detach().to("cpu").numpy()[0]
-            
-            state_np    = state_t.squeeze(0).detach().to("cpu").numpy()
-            logits_np   = logits_t.squeeze(0).detach().to("cpu").numpy()
-            value_np    = value_t.squeeze(0).detach().to("cpu").numpy()
-            self.policy_buffer.add(state_np, logits_np, value_np, action, reward + curiosity, done)
+                if self.policy_buffer.is_full():
+                    self.train()
+                    
+            if done:
+                state = self.envs[e].reset()
 
-            if self.policy_buffer.is_full():
-                self.train()
-                  
-        if done:
-            self.state = self.env.reset()
+            self.states[e] = state
 
-            if hasattr(self.model_ppo, "reset"):
-                self.model_ppo.reset()
+            rewards.append(reward)
+            dones.append(dones)
 
         self.iterations+= 1
-
-        return reward, done
+        return rewards[0], dones[0]
     
     def save(self, save_path):
         self.model_ppo.save(save_path + "trained/")
-        self.model_forward.save(save_path + "trained/")
-        self.model_forward_target.save(save_path + "trained/")
 
     def load(self, save_path):
         self.model_ppo.load(save_path + "trained/")
-        self.model_forward.load(save_path + "trained/")
-        self.model_forward_target.load(save_path + "trained/")
-
-    def get_log(self):
-        result = "" 
-        result+= str(round(self.loss_forward, 7)) + " "
-        result+= str(round(self.internal_motivation, 7)) + " "
-        return result
     
     def _sample_action(self, logits):
         action_probs_t        = torch.nn.functional.softmax(logits.squeeze(0), dim = 0)
         action_distribution_t = torch.distributions.Categorical(action_probs_t)
         action_t              = action_distribution_t.sample()
 
-        return action_t.item()
+        return action_t.item() 
     
     def train(self): 
-
         self.policy_buffer.compute_gae_returns(self.gamma)
 
         for e in range(self.training_epochs):
-            states, logits, values, actions, rewards, dones, returns, advantages = self.policy_buffer.sample_batch(self.batch_size, self.model_ppo.device)
-             
+            states, logits, values, actions, rewards, dones, returns, advantages = self.policy_buffer.sample_batch(self.batch_size)
+
             loss = self._compute_loss(states, logits, actions, returns, advantages)
 
             self.optimizer_ppo.zero_grad()        
             loss.backward()
             for param in self.model_ppo.parameters():
-                param.grad.data.clamp_(-10.0, 10.0)
+                param.grad.data.clamp_(-0.5, 0.5)
             self.optimizer_ppo.step() 
 
 
             #curiosity internal motivation
-            action_one_hot_t            = self._action_one_hot(actions)
-            curiosity_prediction_t      = self._curiosity(states, action_one_hot_t)
-            curiosity_t                 = self.beta*curiosity_prediction_t
-
+            action_one_hot_t    = self._action_one_hot(actions)
+            curiosity_t         = self._curiosity(states, action_one_hot_t)
+        
             #train forward model, MSE loss
-            loss_forward = curiosity_prediction_t.mean()
+            loss_forward = curiosity_t.mean()
             self.optimizer_forward.zero_grad()
             loss_forward.backward()
             self.optimizer_forward.step()
 
-            k = 0.02
-            self.loss_forward           = (1.0 - k)*self.loss_forward        + k*loss_forward.detach().to("cpu").numpy()
-            self.internal_motivation    = (1.0 - k)*self.internal_motivation + k*curiosity_t.mean().detach().to("cpu").numpy()
 
-           
         self.policy_buffer.clear()   
-
-        print(">>> ", self.loss_forward, self.internal_motivation)
-    
 
     
     def _compute_loss(self, states, logits, actions, returns, advantages):
@@ -161,7 +135,7 @@ class AgentPPOCuriosity():
         compute critic loss, as MSE
         L = (T - V(s))^2
         '''
-        loss_value = (returns - values_new)**2
+        loss_value = (returns.detach() - values_new)**2
         loss_value = loss_value.mean()
 
         ''' 
@@ -171,8 +145,8 @@ class AgentPPOCuriosity():
         log_probs_old_  = log_probs_old[range(len(log_probs_old)), actions]
                         
         ratio       = torch.exp(log_probs_ - log_probs_old_)
-        p1          = ratio*advantages
-        p2          = torch.clamp(ratio, 1.0 - self.eps_clip, 1.0 + self.eps_clip)*advantages
+        p1          = ratio*advantages.detach()
+        p2          = torch.clamp(ratio, 1.0 - self.eps_clip, 1.0 + self.eps_clip)*advantages.detach()
         loss_policy = -torch.min(p1, p2)  
         loss_policy = loss_policy.mean()
     
@@ -187,12 +161,13 @@ class AgentPPOCuriosity():
 
         return loss
 
+
     def _action_one_hot(self, action_idx_t):
         batch_size = action_idx_t.shape[0]
 
         action_one_hot_t = torch.zeros((batch_size, self.actions_count))
         action_one_hot_t[range(batch_size), action_idx_t] = 1.0  
-        action_one_hot_t = action_one_hot_t.to(self.model_ppo.device)
+        action_one_hot_t = action_one_hot_t.to(self.model_dqn.device)
 
         return action_one_hot_t
 

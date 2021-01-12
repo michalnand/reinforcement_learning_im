@@ -5,12 +5,12 @@ class Model(torch.nn.Module):
     def __init__(self, input_shape, outputs_count, hidden_count = 256):
         super(Model, self).__init__()
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cpu"
 
         self.robots_count       = input_shape[0]
         self.features_count     = input_shape[1]
         self.actions_count      = outputs_count//self.robots_count
-
 
         self.layers = [ 
             nn.Linear(self.features_count + self.actions_count, hidden_count),

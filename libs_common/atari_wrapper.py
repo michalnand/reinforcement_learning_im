@@ -156,12 +156,13 @@ class EpisodicLifeEnv(gym.Wrapper):
         return obs
 
 class ClipRewardEnv(gym.Wrapper):
-    def __init__(self, env):
+    def __init__(self, env, rewards_density = 1.0):
         gym.Wrapper.__init__(self, env)
 
         self.raw_episodes            = 0
         self.raw_score_per_episode   = 0.0
         self.raw_score_total         = 0.0
+        self.rewards_density         = rewards_density
        
 
     def step(self, action):
@@ -171,19 +172,21 @@ class ClipRewardEnv(gym.Wrapper):
         self.raw_score_per_episode  = self.env.raw_score_per_episode
         self.raw_score_total        = self.env.raw_score_total
 
-   
+        if numpy.random.rand() > self.rewards_density:
+            reward = 0.0
+
         reward = numpy.clip(reward, -1.0, 1.0)
+
         return obs, reward, done, info
 
 
-def AtariWrapper(env, height = 96, width = 96, frame_stacking=4, frame_skipping=4):
+def AtariWrapper(env, height = 96, width = 96, frame_stacking=4, frame_skipping=4, rewards_density = 1.0):
     env = NopOpsEnv(env)
     env = FireResetEnv(env) 
-    #env = SkipEnv(env, frame_skipping)
     env = MaxAndSkipEnv(env, frame_skipping)
     env = ResizeEnv(env, height, width, frame_stacking)
     env = EpisodicLifeEnv(env)
-    env = ClipRewardEnv(env)
+    env = ClipRewardEnv(env, rewards_density)
 
     env.observation_space.shape = (frame_stacking, height, width)
 

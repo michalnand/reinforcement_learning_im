@@ -14,17 +14,20 @@ import models.ppo_baseline.src.config           as Config
 
 path = "models/ppo_baseline/"
 
-env = gym.make("MsPacmanNoFrameskip-v4")
+config  = Config.Config()
+envs    = []
+for e in range(config.actors):
+    env = gym.make("MsPacmanNoFrameskip-v4")
+    env = AtariWrapper(env)
+    envs.append(env)
 
-env = AtariWrapper(env)
-env.reset()
 
 
-agent = libs_agents.AgentPPO(env, Model, Config)
+agent = libs_agents.AgentPPO(envs, Model, Config)
 
-max_iterations = 6*(10**6) 
+max_iterations = 1*(10**6) 
 
-trainig = TrainingIterations(env, agent, max_iterations, path, 10000)
+trainig = TrainingIterations(envs, agent, max_iterations, path, 10000)
 trainig.run() 
 
 '''
@@ -33,6 +36,6 @@ agent.disable_training()
 while True:
     reward, done = agent.main()
 
-    env.render()
+    envs[0].render()
     time.sleep(0.01)
 '''
