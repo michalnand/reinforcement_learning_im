@@ -6,17 +6,13 @@ from .AgentDQNCuriosity             import *
 from .AgentDQNEntropy               import *
 from .AgentDQNDuel                  import *
 
-from .AgentDDPG                     import *
-from .AgentDDPGCuriosity            import *
-
-from .AgentA2C                      import *
-from .AgentA2CContinuous            import *
-
-
 from .AgentPPO                      import *
 from .AgentPPOCuriosity             import *
 from .AgentPPOEntropy               import *
- 
 
+from .AgentDDPG                     import *
+from .AgentDDPGCuriosity            import *
+from .AgentDDPGEntropy              import *
 
-
+from .AgentA2C                      import *
+from .AgentA2CContinuous            import *

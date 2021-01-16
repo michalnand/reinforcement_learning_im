@@ -125,7 +125,7 @@ class AgentPPOEntropy():
         self.model_forward.load(load_path + "trained/")
         self.model_forward_target.load(load_path + "trained/")
         self.model_autoencoder.load(load_path + "trained/")
-
+ 
     def get_log(self):
         result = "" 
         result+= str(round(self.loss_forward, 7)) + " "
@@ -254,7 +254,7 @@ class AgentPPOEntropy():
         self.episodic_memory = numpy.zeros((self.actors, self.episodic_memory_size, features_count))
 
     def _reset_episodic_memory(self, env_idx, state):
-        state_t     = torch.from_numpy(state).to(self.model_ppo.device).unsqueeze(0).float()
+        state_t     = torch.from_numpy(state).to(self.model_autoencoder.device).unsqueeze(0).float()
         features_t  = self.model_autoencoder.eval_features(state_t)
         features_t  = features_t.view(features_t.size(0), -1)
 

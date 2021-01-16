@@ -149,7 +149,7 @@ class AgentDQNEntropy():
         self.curiosity_motivation   = (1.0 - k)*self.curiosity_motivation   + k*curiosity_t.mean().detach().to("cpu").numpy()
 
         self.loss_autoencoder       = (1.0 - k)*self.loss_autoencoder       + k*loss_autoencoder.detach().to("cpu").numpy()
-        self.entropy_motivation     = (1.0 - k)*self.entropy_motivation   + k*entropy_t.mean().detach().to("cpu").numpy()
+        self.entropy_motivation     = (1.0 - k)*self.entropy_motivation     + k*entropy_t.mean().detach().to("cpu").numpy()
 
         # print(self.loss_forward, self.curiosity_motivation, self.loss_autoencoder, self.entropy_motivation)
     
@@ -200,7 +200,7 @@ class AgentDQNEntropy():
         return curiosity_t
 
     def _init_episodic_memory(self, state):   
-        state_t     = torch.from_numpy(state).to(self.model_dqn.device).unsqueeze(0).float()
+        state_t     = torch.from_numpy(state).to(self.model_autoencoder.device).unsqueeze(0).float()
         features_t  = self.model_autoencoder.eval_features(state_t)
         features_np = features_t.squeeze(0).detach().to("cpu").numpy()
         

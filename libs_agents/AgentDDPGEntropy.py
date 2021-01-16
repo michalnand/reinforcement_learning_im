@@ -3,19 +3,18 @@ import torch
 from .ExperienceBufferContinuous import *
 
 
-class AgentDDPGCuriosityImagination():
-    def __init__(self, env, ModelCritic, ModelActor, ModelForward, ModelForwardTarget, ModelReward, Config):
+class AgentDDPGEntropy():
+    def __init__(self, env, ModelCritic, ModelActor, ModelForward, ModelForwardTarget, ModelAutoencoder, Config):
         self.env = env
 
         config = Config.Config()
 
-        self.batch_size         = config.batch_size
-        self.gamma              = config.gamma
-        self.update_frequency   = config.update_frequency
-        self.tau                = config.tau
-        self.beta_curiosity     = config.beta_curiosity
-        self.rollouts           = config.rollouts
- 
+        self.batch_size     = config.batch_size
+        self.gamma          = config.gamma
+        self.update_frequency = config.update_frequency
+        self.tau                =  config.tau
+        self.beta1           = config.beta1
+        self.beta2           = config.beta2
 
         self.exploration    = config.exploration
     
@@ -44,26 +43,22 @@ class AgentDDPGCuriosityImagination():
         self.model_forward_target   = ModelForwardTarget.Model(self.state_shape, self.actions_count)
         self.optimizer_forward      = torch.optim.Adam(self.model_forward.parameters(), lr=config.forward_learning_rate)
 
-
-        state_t        = torch.randn(self.state_shape).to(self.model_forward.device).unsqueeze(0).float()
-        action_t       = torch.randn(self.actions_count).to(self.model_forward.device).unsqueeze(0).float()
-        self.features_count = self.model_forward(state_t, action_t).shape[1]
-
-
-        self.model_reward           = ModelReward.Model(self.state_shape, self.actions_count)
-        self.optimizer_reward       = torch.optim.Adam(self.model_reward.parameters(), lr=config.reward_learning_rate)
-
+        self.model_autoencoder       = ModelAutoencoder.Model(self.state_shape)
+        self.optimizer_autoencoder   = torch.optim.Adam(self.model_autoencoder.parameters(), lr= config.autoencoder_learning_rate)
 
         self.state              = env.reset()
         self.iterations         = 0
 
-        self.loss_forward             = 0.0
-        self.loss_reward              = 0.0
-        self.curiosity_motivation     = 0.0
+        self.episodic_memory_size   = config.episodic_memory_size 
+        self._init_episodic_memory(self.state)
+
+        self.loss_forward           = 0.0
+        self.curiosity_motivation   = 0.0
+
+        self.loss_autoencoder       = 0.0
+        self.entropy_motivation     = 0.0
 
         self.enable_training()
-
-
 
     def enable_training(self):
         self.enabled_training = True
@@ -74,29 +69,20 @@ class AgentDDPGCuriosityImagination():
     def main(self):
         if self.enabled_training:
             self.exploration.process()
-            self.epsilon = self.exploration.get()
+            epsilon = self.exploration.get()
         else:
-            self.epsilon = self.exploration.get_testing()
+            epsilon = self.exploration.get_testing()
        
         state_t     = torch.from_numpy(self.state).to(self.model_actor.device).unsqueeze(0).float()
+        action_t, action = self._sample_action(state_t, epsilon)
+ 
+        action = action.squeeze()
 
-        #imagine actions and rewards
-        actions_imagined_t, rewards_t = self._imagination(state_t)
-
-        rewards_np = rewards_t.squeeze(0).detach().to("cpu").numpy()
-
-        #probality select action
-        rewards_probs   = numpy.exp(rewards_np - numpy.max(rewards_np))
-        rewards_probs   = rewards_probs/numpy.sum(rewards_probs)
-        action_idx      = numpy.random.choice(range(self.rollouts), p = rewards_probs)
-
-        action      = actions_imagined_t.detach().to("cpu").numpy()[action_idx]
-
-
-        state_next, self.reward, done, self.info = self.env.step(action)
+        state_next, reward, done, self.info = self.env.step(action)
 
         if self.enabled_training: 
-            self.experience_replay.add(self.state, action, self.reward, done)
+            entropy = self._add_episodic_memory(state_t)
+            self.experience_replay.add(self.state, action, reward, done, entropy)
 
         if self.enabled_training and self.iterations > 0.1*self.experience_replay.size:
             if self.iterations%self.update_frequency == 0:
@@ -104,46 +90,46 @@ class AgentDDPGCuriosityImagination():
 
         if done:
             self.state = self.env.reset()
+            self._init_episodic_memory(self.state)
         else:
             self.state = state_next.copy()
 
         self.iterations+= 1
 
-        return self.reward, done
+        return reward, done
         
         
     def train_model(self):
-        state_t, state_next_t, action_t, reward_t, done_t, _ = self.experience_replay.sample(self.batch_size, self.model_critic.device)
+        state_t, state_next_t, action_t, reward_t, done_t, entropy_t = self.experience_replay.sample(self.batch_size, self.model_critic.device)
+
+        action_next_t   = self.model_actor_target.forward(state_next_t).detach()
+        value_next_t    = self.model_critic_target.forward(state_next_t, action_next_t).detach()
 
         #curiosity internal motivation
-        curiosity_predicted_t   = self._curiosity(state_t, action_t)
-        curiosity_t             = self.beta_curiosity*curiosity_predicted_t.detach()
+        curiosity_prediction_t      = self._curiosity(state_t, action_t)
+        curiosity_t                 = self.beta1*curiosity_prediction_t.detach()
 
         #train forward model, MSE loss
-        loss_forward = curiosity_predicted_t.mean()
+        loss_forward = curiosity_prediction_t.mean()
         self.optimizer_forward.zero_grad()
         loss_forward.backward()
         self.optimizer_forward.step()
 
-        #predict reward
-        reward_predicted_t  = self.model_reward(state_t, action_t)
-        reward_target_t     = reward_t + curiosity_t
 
-        #train reward model, MSE loss
-        loss_reward_t = (reward_target_t.detach() - reward_predicted_t)**2
-        loss_reward_t = loss_reward_t.mean()
-        self.optimizer_reward.zero_grad()
-        loss_reward_t.backward()
-        self.optimizer_reward.step()
+        #train autoencoder model, MSE loss
+        state_predicted_t, _   = self.model_autoencoder(state_t)
+        loss_autoencoder    = (state_t.detach() - state_predicted_t)**2
 
-        action_next_t   = self.model_actor_target.forward(state_next_t).detach()
-        value_next_t    = self.model_critic_target.forward(state_next_t, action_next_t).detach()
+        loss_autoencoder = loss_autoencoder.mean()
+        self.optimizer_autoencoder.zero_grad()
+        loss_autoencoder.backward()
+        self.optimizer_autoencoder.step()
 
         reward_t = reward_t.unsqueeze(-1)
         done_t   = (1.0 - done_t).unsqueeze(-1)
 
         #critic loss
-        value_target    = reward_t + curiosity_t + self.gamma*done_t*value_next_t
+        value_target    = reward_t + curiosity_t + entropy_t + self.gamma*done_t*value_next_t
         value_predicted = self.model_critic.forward(state_t, action_t)
 
         loss_critic     = ((value_target - value_predicted)**2)
@@ -157,7 +143,7 @@ class AgentDDPGCuriosityImagination():
         #actor loss
         loss_actor      = -self.model_critic.forward(state_t, self.model_actor.forward(state_t))
         loss_actor      = loss_actor.mean()
-  
+
         #update actor
         self.optimizer_actor.zero_grad()       
         loss_actor.backward()
@@ -172,30 +158,36 @@ class AgentDDPGCuriosityImagination():
 
         k = 0.02
         self.loss_forward           = (1.0 - k)*self.loss_forward           + k*loss_forward.detach().to("cpu").numpy()
-        self.loss_reward            = (1.0 - k)*self.loss_reward            + k*loss_reward_t.mean().detach().to("cpu").numpy()
         self.curiosity_motivation   = (1.0 - k)*self.curiosity_motivation   + k*curiosity_t.mean().detach().to("cpu").numpy()
-        
-        #print(">>> ", self.loss_forward, self.loss_reward, self.curiosity_motivation)
- 
+
+        self.loss_autoencoder       = (1.0 - k)*self.loss_autoencoder       + k*loss_autoencoder.detach().to("cpu").numpy()
+        self.entropy_motivation     = (1.0 - k)*self.entropy_motivation     + k*entropy_t.mean().detach().to("cpu").numpy()
+
+        #print(self.loss_forward, self.curiosity_motivation, self.loss_autoencoder, self.entropy_motivation)
+    
+
     def save(self, save_path):
         self.model_critic.save(save_path+"trained/")
         self.model_actor.save(save_path+"trained/")
         self.model_forward.save(save_path+"trained/")
         self.model_forward_target.save(save_path+"trained/")
-        self.model_reward.save(save_path+"trained/")
+        self.model_autoencoder.save(save_path + "trained/")
 
     def load(self, load_path):
         self.model_critic.load(load_path+"trained/")
         self.model_actor.load(load_path+"trained/")
         self.model_forward.load(load_path+"trained/")
         self.model_forward_target.load(load_path+"trained/")
-        self.model_reward.load(save_path+"trained/")
+        self.model_autoencoder.load(load_path + "trained/")
+
     
     def get_log(self):
         result = "" 
         result+= str(round(self.loss_forward, 7)) + " "
-        result+= str(round(self.loss_reward, 7)) + " "
         result+= str(round(self.curiosity_motivation, 7)) + " "
+        result+= str(round(self.loss_autoencoder, 7)) + " "
+        result+= str(round(self.entropy_motivation, 7)) + " "
+
         return result
     
 
@@ -217,18 +209,33 @@ class AgentDDPGCuriosityImagination():
 
         return curiosity_t
 
+    def _init_episodic_memory(self, state):   
+        state_t     = torch.from_numpy(state).to(self.model_autoencoder.device).unsqueeze(0).float()
+        features_t  = self.model_autoencoder.eval_features(state_t)
+        features_np = features_t.squeeze(0).detach().to("cpu").numpy()
+        
+        features_t  = self.model_autoencoder.eval_features(state_t)
+        features_t  = features_t.view(features_t.size(0), -1)
+
+        features_np = features_t.detach().to("cpu").numpy()
+
+        self.episodic_memory        = numpy.tile(features_np, (self.episodic_memory_size, 1))
     
-    def _imagination(self, state_t):
-        
-        actions_imagined_t  = torch.zeros((self.rollouts, self.actions_count)).to(state_t.device)
-        rewards_imagined_t  = torch.zeros((self.rollouts, 1)).to(state_t.device)
-        states_t            = torch.zeros((self.rollouts, ) + self.state_shape).to(state_t.device)
 
-        for r in range(self.rollouts):
-            states_t[r]             = state_t
-            action_t, _             = self._sample_action(state_t, self.epsilon)
-            actions_imagined_t[r]   = action_t.squeeze(0)
+    def _add_episodic_memory(self, state_t):
+        features_t  = self.model_autoencoder.eval_features(state_t)
 
-        rewards_imagined_t = self.model_reward(states_t, actions_imagined_t).squeeze(1)
+        features_t  = features_t.view(features_t.size(0), -1)
+        features_np = features_t.detach().to("cpu").numpy()
         
-        return actions_imagined_t, rewards_imagined_t
+        #put current state into episodic memory, on random place
+        idx = numpy.random.randint(self.episodic_memory_size)
+        self.episodic_memory[idx] = features_np.copy()
+
+        em_mean = self.episodic_memory.mean(axis=1)
+        em_std  = self.episodic_memory.std(axis=1)
+
+        entropy =  self.beta2*em_std.mean()
+
+        return entropy
+
