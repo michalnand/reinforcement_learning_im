@@ -8,11 +8,11 @@ import libs_agents
 from libs_common.Training import *
 from libs_common.atari_wrapper import *
 
-import models.ppo_entropy.src.model                   as Model
-import models.ppo_entropy.src.model_forward           as ModelForward
-import models.ppo_entropy.src.model_forward_target    as ModelForwardTarget
-import models.ppo_entropy.src.model_autoencoder       as ModelAutoencoder
-import models.ppo_entropy.src.config                  as Config
+import models.ppo_entropy.src.model_ppo             as ModelPPO
+import models.ppo_entropy.src.model_forward         as ModelForward
+import models.ppo_entropy.src.model_forward_target  as ModelForwardTarget
+import models.ppo_entropy.src.model_autoencoder     as ModelAutoencoder
+import models.ppo_entropy.src.config                as Config
 
 
 path = "models/ppo_entropy/"
@@ -25,7 +25,7 @@ for e in range(config.actors):
     envs.append(env)
 
 
-agent = libs_agents.AgentPPOEntropy(envs, Model, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
+agent = libs_agents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
 
 max_iterations = 1*(10**6) 
 

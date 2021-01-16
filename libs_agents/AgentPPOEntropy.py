@@ -38,16 +38,18 @@ class AgentPPOEntropy():
         self.model_forward_target   = ModelForwardTarget.Model(self.state_shape, self.actions_count)
 
         self.model_autoencoder       = ModelAutoencoder.Model(self.state_shape)
-        self.optimizer_autoencoder   = torch.optim.Adam(self.model_autoencoder.parameters(), lr= config.learning_rate_autoencoder)
+        self.optimizer_autoencoder   = torch.optim.Adam(self.model_autoencoder.parameters(), lr=config.learning_rate_autoencoder)
 
         self.policy_buffer = PolicyBuffer(self.steps, self.state_shape, self.actions_count, self.actors, self.model_ppo.device)
 
+        self.episodic_memory_size   = config.episodic_memory_size 
+        self._init_episodic_memory()
+
         self.states = []
         for e in range(self.actors):
-            self.states.append(self.envs[e].reset())
-
-        self.episodic_memory_size   = config.episodic_memory_size 
-        self._init_episodic_memory(self.states)
+            state = self.envs[e].reset()
+            self.states.append(state)
+            self._reset_episodic_memory(e, state)
 
         self.iterations = 0
 
@@ -83,20 +85,22 @@ class AgentPPOEntropy():
 
         actions_one_hot_t   = self._action_one_hot(numpy.array(actions))
         curiosity_t         = self._curiosity(states_t, actions_one_hot_t)
+        curiosity_np        = self.beta1*curiosity_t.detach().to("cpu").numpy()
 
-        curiosity_np        = self.beta*curiosity_t.detach().to("cpu").numpy()
+        entropy_np          = self.beta2*self._add_episodic_memory(states_t)
 
         for e in range(self.actors):
             state, reward, done, _ = self.envs[e].step(actions[e])
             
             if self.enabled_training:
-                self.policy_buffer.add(e, states_np[e], logits_np[e], values_np[e], actions[e], reward + curiosity_np[e], done)
+                self.policy_buffer.add(e, states_np[e], logits_np[e], values_np[e], actions[e], reward + curiosity_np[e] + entropy_np[e], done)
 
                 if self.policy_buffer.is_full():
                     self.train()
 
             if done:
                 state = self.envs[e].reset()
+                self._reset_episodic_memory(e, state)
 
             self.states[e] = state.copy()
 
@@ -104,7 +108,8 @@ class AgentPPOEntropy():
             dones.append(done)
 
         k = 0.02
-        self.curiosity_motivation    = (1.0 - k)*self.curiosity_motivation + k*curiosity_np.mean()
+        self.curiosity_motivation   = (1.0 - k)*self.curiosity_motivation + k*curiosity_np.mean()
+        self.entropy_motivation     = (1.0 - k)*self.entropy_motivation + k*entropy_np.mean()
 
         self.iterations+= 1
         return rewards[0], dones[0]
@@ -144,7 +149,7 @@ class AgentPPOEntropy():
 
         for e in range(self.training_epochs):
             for batch_idx in range(batch_count):
-                states, logits, values, actions, rewards, dones, returns, advantages = self.policy_buffer.sample_batch(self.batch_size, self.model.device)
+                states, logits, values, actions, rewards, dones, returns, advantages = self.policy_buffer.sample_batch(self.batch_size, self.model_ppo.device)
 
                 loss = self._compute_loss(states, logits, actions, returns, advantages)
 
@@ -160,13 +165,25 @@ class AgentPPOEntropy():
                 self.optimizer_forward.zero_grad()
                 loss_forward.backward()
                 self.optimizer_forward.step()
+
+
+                #train autoencoder model, MSE loss
+                state_predicted_t, _    = self.model_autoencoder(states)
+                loss_autoencoder        = (states.detach() - state_predicted_t)**2
+
+                loss_autoencoder = loss_autoencoder.mean()
+                self.optimizer_autoencoder.zero_grad()
+                loss_autoencoder.backward()
+                self.optimizer_autoencoder.step()
+
  
                 k = 0.02
-                self.loss_forward  = (1.0 - k)*self.loss_forward + k*loss_forward.detach().to("cpu").numpy()
+                self.loss_forward       = (1.0 - k)*self.loss_forward + k*loss_forward.detach().to("cpu").numpy()
+                self.loss_autoencoder   = (1.0 - k)*self.loss_autoencoder + k*loss_autoencoder.detach().to("cpu").numpy()
 
         self.policy_buffer.clear() 
 
-        print("AAAA ", self.loss_forward, self.curiosity_motivation)
+        print("loss ", self.loss_forward, self.curiosity_motivation, self.loss_autoencoder, self.entropy_motivation)
 
     
     def _compute_loss(self, states, logits, actions, returns, advantages):
@@ -227,34 +244,40 @@ class AgentPPOEntropy():
 
         return curiosity_t
 
-    #TODO
-    def _init_episodic_memory(self, states):   
-        states_t     = torch.from_numpy(states).to(self.model_dqn.device).unsqueeze(0).float()
-        features_t  = self.model_autoencoder.eval_features(states_t)
-        features_np = features_t.squeeze(0).detach().to("cpu").numpy()
-        
+    
+    def _init_episodic_memory(self):   
+        states_t        = torch.randn((1, ) + self.state_shape).to(self.model_autoencoder.device)
+        features_t      = self.model_autoencoder.eval_features(states_t)
+        features_t      = features_t.view(features_t.size(0), -1)
+        features_count  = features_t.shape[1]
+
+        self.episodic_memory = numpy.zeros((self.actors, self.episodic_memory_size, features_count))
+
+    def _reset_episodic_memory(self, env_idx, state):
+        state_t     = torch.from_numpy(state).to(self.model_ppo.device).unsqueeze(0).float()
         features_t  = self.model_autoencoder.eval_features(state_t)
         features_t  = features_t.view(features_t.size(0), -1)
 
-        features_np = features_t.detach().to("cpu").numpy()
+        features_np = features_t.squeeze(0).detach().to("cpu").numpy()
 
-        self.episodic_memory        = numpy.tile(features_np, (self.episodic_memory_size, 1))
-    
+        for i in range(self.episodic_memory_size):
+            self.episodic_memory[env_idx][i] = features_np.copy()
 
     def _add_episodic_memory(self, state_t):
         features_t  = self.model_autoencoder.eval_features(state_t)
 
         features_t  = features_t.view(features_t.size(0), -1)
         features_np = features_t.detach().to("cpu").numpy()
-        
+         
         #put current state into episodic memory, on random place
-        idx = numpy.random.randint(self.episodic_memory_size)
-        self.episodic_memory[idx] = features_np.copy()
-
+        for e in range(self.actors):
+            idx = numpy.random.randint(self.episodic_memory_size)
+            self.episodic_memory[e][idx] = features_np[e].copy()
+ 
         em_mean = self.episodic_memory.mean(axis=1)
         em_std  = self.episodic_memory.std(axis=1)
 
-        entropy =  self.beta2*em_std.mean()
+        entropy =  self.beta2*em_std.mean(axis=1)
 
         return entropy
 
