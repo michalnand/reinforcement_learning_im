@@ -133,11 +133,11 @@ class AgentDQNCuriosity():
         self.model_forward.save(save_path + "trained/")
         self.model_forward_target.save(save_path + "trained/")
 
-    def load(self, save_path):
-        self.model_dqn.load(save_path + "trained/")
-        self.model_forward.load(save_path + "trained/")
-        self.model_forward_target.save(save_path + "trained/")
-
+    def load(self, load_path):
+        self.model_dqn.load(load_path + "trained/")
+        self.model_forward.load(load_path + "trained/")
+        self.model_forward_target.load(load_path + "trained/")
+ 
     def get_log(self):
         result = "" 
         result+= str(round(self.loss_forward, 7)) + " "

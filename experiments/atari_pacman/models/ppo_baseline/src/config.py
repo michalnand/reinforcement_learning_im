@@ -1,11 +1,8 @@
-import libs_common.decay
-
 class Config(): 
-
     def __init__(self):
         self.gamma                  = 0.99
-        self.entropy_beta           = 0.01
-        self.eps_clip               = 0.1
+        self.entropy_beta           = 0.001
+        self.eps_clip               = 0.2
 
         self.steps                  = 128
         self.batch_size             = 32

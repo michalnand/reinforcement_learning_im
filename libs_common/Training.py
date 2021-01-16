@@ -83,23 +83,33 @@ class TrainingIterations:
         log = TrainingLog(self.saving_path + "result/result.log", self.saving_period_iterations, True)
         new_best = False
 
+        fps        = 0.0
+
+        if isinstance(self.env, list):
+            env = self.env[0]
+        else:
+            env = self.env
+
         for iteration in range(self.iterations_count):
-            reward, done = self.agent.main()
+            
+            time_start      = time.time()
+            reward, done    = self.agent.main()
+            time_stop       = time.time()
             
             raw_episodes            = 0 
             raw_score_per_episode   = 0
             raw_score_total         = 0
 
-            if hasattr(self.env, "raw_episodes"):
-                raw_episodes = self.env.raw_episodes
+            if hasattr(env, "raw_episodes"):
+                raw_episodes = env.raw_episodes
 
-            if hasattr(self.env, "raw_score_total"):
-                raw_score_total = self.env.raw_score_total
+            if hasattr(env, "raw_score_total"):
+                raw_score_total = env.raw_score_total
 
-            if hasattr(self.env, "raw_score_per_episode"):
-                raw_score_per_episode = self.env.raw_score_per_episode
+            if hasattr(env, "raw_score_per_episode"):
+                raw_score_per_episode = env.raw_score_per_episode
 
-            log_agent = ""
+            log_agent = "" 
             if hasattr(self.agent, "get_log"):
                 log_agent = self.agent.get_log() 
 
@@ -117,6 +127,17 @@ class TrainingIterations:
                 print("\n\n")
                 print("saving new best with score = ", log.episode_score_best)
                 self.agent.save(self.saving_path)
+                print("\n\n")
+
+            k = 0.02
+            fps = (1.0-k)*fps + k*1.0/(time_stop - time_start)
+  
+            if iteration%1000 == 0:
+
+                time_remain = (self.iterations_count - iteration)/fps
+
+                print("FPS = ",  round(fps, 3))
+                print("ETA = ",  round(time_remain/3600, 2), " hours")
                 print("\n\n")
 
             

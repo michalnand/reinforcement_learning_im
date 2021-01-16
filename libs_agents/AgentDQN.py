@@ -106,8 +106,8 @@ class AgentDQN():
     def save(self, save_path):
         self.model.save(save_path + "trained/")
 
-    def load(self, save_path):
-        self.model.load(save_path + "trained/")
+    def load(self, load_path):
+        self.model.load(load_path + "trained/")
     
     def _sample_action(self, q_values, epsilon):
         if numpy.random.rand() < epsilon:

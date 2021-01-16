@@ -32,15 +32,17 @@ class Wrapper(gym.RewardWrapper):
 
         return obs, reward, done, info
 
+config  = Config.Config()
+envs    = []
+for e in range(config.actors):
+    env = gym.make("LunarLander-v2")
+    env = Wrapper(env)
+    envs.append(env)
 
-env = gym.make("LunarLander-v2")
-env = Wrapper(env)
-env.reset()
+agent = libs_agents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForwardTarget, Config)
 
-agent = libs_agents.AgentPPOCuriosity(env, ModelPPO, ModelForward, ModelForwardTarget, Config)
-
-max_iterations = 500000
-trainig = TrainingIterations(env, agent, max_iterations, path, 1000)
+max_iterations = 100000
+trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
 trainig.run() 
 
 '''

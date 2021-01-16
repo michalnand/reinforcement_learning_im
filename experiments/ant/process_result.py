@@ -74,15 +74,12 @@ plt.legend(loc='lower right', borderaxespad=0.)
 plt.savefig(result_path + "score_per_iteration.png", dpi = 300)
 
 
-'''
 
 plt.cla()
 plt.ylabel("value")
 plt.xlabel("iteration")
 plt.grid(color='black', linestyle='-', linewidth=0.1)
 
-plt.plot(rl_stats_compute_curiosity.iterations, rl_stats_compute_curiosity.entropy_mean, label="entropy", color='orange')
-plt.fill_between(rl_stats_compute_curiosity.iterations, rl_stats_compute_curiosity.entropy_lower, rl_stats_compute_curiosity.entropy_upper, color='orange', alpha=0.2)
 
 
 plt.plot(rl_stats_compute_curiosity.iterations, rl_stats_compute_curiosity.curiosity_mean, label="curiosity", color='green')
@@ -92,7 +89,7 @@ plt.legend(loc='lower right', borderaxespad=0.)
 plt.savefig(result_path + "internal_motivation.png", dpi = 300)
 
 
-
+'''
 plt.cla()
 plt.ylabel("value")
 plt.xlabel("iteration")
