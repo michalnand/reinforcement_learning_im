@@ -9,7 +9,7 @@ class Config():
         self.forward_learning_rate      = 0.0004
         self.autoencoder_learning_rate  = 0.0004
 
-        self.tau                    = 0.001
+        self.tau                    = 0.001 
         self.beta1                  = 10.0
         self.beta2                  = 0.01
 
@@ -20,4 +20,4 @@ class Config():
 
         self.exploration   = libs_common.decay.Linear(1000000, 0.3, 0.05, 0.05)
 
-        self.experience_replay_size = 1024 #200000
+        self.experience_replay_size = 200000
