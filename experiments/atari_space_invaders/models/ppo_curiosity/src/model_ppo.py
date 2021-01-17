@@ -1,13 +1,6 @@
 import torch
 import torch.nn as nn
 
-import sys
-#sys.path.insert(0, '../../..')
-sys.path.insert(0, '../../../../..')
-
-import libs_layers
-
-
 class Flatten(nn.Module):
     def forward(self, input):
         return input.view(input.size(0), -1)
@@ -76,10 +69,10 @@ class Model(torch.nn.Module):
             nn.Linear(512, 1)    
         ]  
 
-        self.layers_advantage = [
-            libs_layers.NoisyLinear(fc_inputs_count, 512),
+        self.layers_policy = [
+            nn.Linear(fc_inputs_count, 512),
             nn.ReLU(),                      
-            libs_layers.NoisyLinear(512, outputs_count)
+            nn.Linear(512, outputs_count)
         ]
  
   
@@ -91,9 +84,9 @@ class Model(torch.nn.Module):
             if hasattr(self.layers_value[i], "weight"):
                 torch.nn.init.xavier_uniform_(self.layers_value[i].weight)
 
-        for i in range(len(self.layers_advantage)):
-            if hasattr(self.layers_advantage[i], "weight"):
-                torch.nn.init.xavier_uniform_(self.layers_advantage[i].weight)
+        for i in range(len(self.layers_policy)):
+            if hasattr(self.layers_policy[i], "weight"):
+                torch.nn.init.xavier_uniform_(self.layers_policy[i].weight)
 
 
         self.model_features = nn.Sequential(*self.layers_features)
@@ -102,58 +95,41 @@ class Model(torch.nn.Module):
         self.model_value = nn.Sequential(*self.layers_value)
         self.model_value.to(self.device)
 
-        self.model_advantage = nn.Sequential(*self.layers_advantage)
-        self.model_advantage.to(self.device)
+        self.model_policy = nn.Sequential(*self.layers_policy)
+        self.model_policy.to(self.device)
 
-        print("model_dqn")
+        print("model_ppo")
         print(self.model_features)
         print(self.model_value)
-        print(self.model_advantage)
+        print(self.model_policy)
         print("\n\n")
 
 
     def forward(self, state):
         features    = self.model_features(state)
 
-        value       = self.model_value(features)
-        advantage   = self.model_advantage(features)
+        value    = self.model_value(features)
+        policy   = self.model_policy(features)
 
-        result = value + advantage - advantage.mean(dim=1, keepdim=True)
-
-        return result
-
-    def eval_rollouts(self, state, rollouts):
-        batch_size = state.shape[0]
-        
-        features = self.model_features(state) 
-
-        result = torch.zeros((rollouts, batch_size, self.outputs_count))
-        for r in range(rollouts):
-            value       = self.model_value(features)
-            advantage   = self.model_advantage(features)
-
-            result[r] = value + advantage - advantage.mean(dim=1, keepdim=True)
-
-        return result
-
+        return policy, value
 
     def save(self, path):
         print("saving ", path)
 
-        torch.save(self.model_features.state_dict(), path + "model_dqn_features.pt")
-        torch.save(self.model_value.state_dict(), path + "model_dqn_value.pt")
-        torch.save(self.model_advantage.state_dict(), path + "model_dqn_advantage.pt")
+        torch.save(self.model_features.state_dict(), path + "model_ppo_features.pt")
+        torch.save(self.model_value.state_dict(), path + "model_ppo_value.pt")
+        torch.save(self.model_policy.state_dict(), path + "model_ppo_policy.pt")
 
     def load(self, path):
         print("loading ", path) 
 
-        self.model_features.load_state_dict(torch.load(path + "model_dqn_features.pt", map_location = self.device))
-        self.model_value.load_state_dict(torch.load(path + "model_dqn_value.pt", map_location = self.device))
-        self.model_advantage.load_state_dict(torch.load(path + "model_dqn_advantage.pt", map_location = self.device))
+        self.model_features.load_state_dict(torch.load(path + "model_ppo_features.pt", map_location = self.device))
+        self.model_value.load_state_dict(torch.load(path + "model_ppo_value.pt", map_location = self.device))
+        self.model_policy.load_state_dict(torch.load(path + "model_ppo_policy.pt", map_location = self.device))
         
         self.model_features.eval() 
         self.model_value.eval() 
-        self.model_advantage.eval() 
+        self.model_policy.eval() 
 
 
     def get_activity_map(self, state):
@@ -173,29 +149,3 @@ class Model(torch.nn.Module):
         result = k*result + q
         
         return result
-
-
-if __name__ == "__main__":
-    batch_size = 8
-
-    channels = 4
-    height   = 96
-    width    = 96
-
-    actions_count = 9
-
-
-    state   = torch.rand((batch_size, channels, height, width))
-
-    model = Model((channels, height, width), actions_count)
-
-
-    q_values = model.forward(state)
-    print(q_values.shape)
-
-    q_values_rollouts = model.eval_rollouts(state, 16)
-    print(q_values_rollouts.shape)
-
-
-
-

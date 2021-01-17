@@ -25,10 +25,11 @@ class Model(torch.nn.Module):
 
             Flatten(),
 
-            nn.Linear(64*fc_size, 256),
+            nn.Linear(64*fc_size, 512),
             nn.ReLU(),
-           
-            nn.Linear(256, 1)
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Linear(512, 512)
         ]
 
         for i in range(len(self.layers)):
@@ -38,7 +39,7 @@ class Model(torch.nn.Module):
         self.model = nn.Sequential(*self.layers)
         self.model.to(self.device)
 
-        print("model_reward")
+        print("model_forward")
         print(self.model)
         print("\n\n")
 
@@ -52,10 +53,10 @@ class Model(torch.nn.Module):
         return self.model(x)
 
     def save(self, path):
-        torch.save(self.model.state_dict(), path + "model_reward.pt")
+        torch.save(self.model.state_dict(), path + "model_forward.pt")
         
     def load(self, path):
-        self.model.load_state_dict(torch.load(path + "model_reward.pt", map_location = self.device))
+        self.model.load_state_dict(torch.load(path + "model_forward.pt", map_location = self.device))
         self.model.eval() 
 
 if __name__ == "__main__":

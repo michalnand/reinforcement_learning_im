@@ -222,8 +222,8 @@ class AgentDQNEntropy():
         idx = numpy.random.randint(self.episodic_memory_size)
         self.episodic_memory[idx] = features_np.copy()
 
-        em_mean = self.episodic_memory.mean(axis=1)
-        em_std  = self.episodic_memory.std(axis=1)
+        em_mean = self.episodic_memory.mean(axis=0)
+        em_std  = self.episodic_memory.std(axis=0)
 
         entropy =  self.beta2*em_std.mean()
 
