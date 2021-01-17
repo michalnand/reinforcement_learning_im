@@ -264,15 +264,15 @@ class AgentPPOEntropy():
             self.episodic_memory[env_idx][i] = features_np.copy()
 
     def _add_episodic_memory(self, state_t):
-        #put current state into episodic memory, on random place
-        for e in range(self.actors):
-            idx = numpy.random.randint(self.episodic_memory_size)
-            self.episodic_memory[e][idx] = features_np[e].copy()
- 
         features_t  = self.model_autoencoder.eval_features(state_t)
 
         features_t  = features_t.view(features_t.size(0), -1)
         features_np = features_t.detach().to("cpu").numpy()
+
+        #put current state into episodic memory, on random place
+        for e in range(self.actors):
+            idx = numpy.random.randint(self.episodic_memory_size)
+            self.episodic_memory[e][idx] = features_np[e].copy()
          
         em_mean = self.episodic_memory.mean(axis=1)
         em_std  = self.episodic_memory.std(axis=1)
