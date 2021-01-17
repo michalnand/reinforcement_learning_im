@@ -56,6 +56,7 @@ class AgentPPO():
         logits_np = logits_t.detach().to("cpu").numpy()
         values_np = values_t.detach().to("cpu").numpy()
 
+       
         for e in range(self.actors):
             action = self._sample_action(logits_t[e])
                 
