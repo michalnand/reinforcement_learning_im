@@ -9,18 +9,17 @@ class Model(torch.nn.Module):
 
         self.layers_encoder = [ 
             nn.Linear(input_shape[0], hidden_count),
-            nn.ReLU(),
-            nn.Linear(hidden_count, hidden_count),
-            nn.ReLU(),            
-            nn.Linear(hidden_count, lattent_size)           
+            nn.Tanh(),
+            nn.Linear(hidden_count, hidden_count//2),
+            nn.Tanh(),
+            nn.Linear(hidden_count//2, lattent_size)
         ] 
 
-
         self.layers_decoder = [ 
-            nn.Linear(lattent_size, hidden_count),
-            nn.ReLU(),
-            nn.Linear(hidden_count, hidden_count),
-            nn.ReLU(),            
+            nn.Linear(lattent_size, hidden_count//2),
+            nn.Tanh(),         
+            nn.Linear(hidden_count//2, hidden_count),
+            nn.Tanh(),         
             nn.Linear(hidden_count, input_shape[0])           
         ] 
 
@@ -45,12 +44,8 @@ class Model(torch.nn.Module):
        
 
     def forward(self, state):
-        features    = self.model_encoder(state)
-
-        noise       = torch.randn(features.shape).to(features.device)
-        f_noised    = features + 0.01*noise
-
-        return self.model_decoder(f_noised), features
+        features = self.model_encoder(state)
+        return self.model_decoder(features), features
 
     def eval_features(self, state):
         return self.model_encoder(state)

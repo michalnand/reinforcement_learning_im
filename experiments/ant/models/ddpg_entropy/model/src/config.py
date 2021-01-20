@@ -7,7 +7,7 @@ class Config():
         self.critic_learning_rate       = 0.0002
         self.actor_learning_rate        = 0.0001
         self.forward_learning_rate      = 0.0004
-        self.autoencoder_learning_rate  = 0.0004
+        self.autoencoder_learning_rate  = 0.0002
 
         self.tau                    = 0.001 
         self.beta1                  = 10.0
@@ -16,7 +16,7 @@ class Config():
         self.batch_size          = 64
         self.update_frequency    = 4
 
-        self.episodic_memory_size   = 64
+        self.episodic_memory_size   = 32
 
         self.exploration   = libs_common.decay.Linear(1000000, 0.3, 0.05, 0.05)
 

@@ -81,7 +81,7 @@ class AgentDDPGEntropy():
         state_next, reward, done, self.info = self.env.step(action)
 
         if self.enabled_training: 
-            entropy = self._add_episodic_memory(state_t)
+            entropy = self._add_episodic_memory(state_t, action)
             self.experience_replay.add(self.state, action, reward, done, entropy)
 
         if self.enabled_training and self.iterations > 0.1*self.experience_replay.size:
@@ -219,23 +219,26 @@ class AgentDDPGEntropy():
 
         features_np = features_t.detach().to("cpu").numpy()
 
-        self.episodic_memory        = numpy.tile(features_np, (self.episodic_memory_size, 1))
-    
+        self.episodic_memory_features  = numpy.tile(features_np, (self.episodic_memory_size, 1))
+        self.episodic_memory_actions   = numpy.random.randn(self.episodic_memory_size, self.actions_count)
 
-    def _add_episodic_memory(self, state_t):
+    def _add_episodic_memory(self, state_t, actions_np):
         features_t  = self.model_autoencoder.eval_features(state_t)
 
         features_t  = features_t.view(features_t.size(0), -1)
         features_np = features_t.detach().to("cpu").numpy()
 
-        #put current state into episodic memory, on random place
+        distances_features = ((self.episodic_memory_features - features_np)**2).mean(axis=1)
+        distances_actions = ((self.episodic_memory_actions  - actions_np)**2).mean(axis=1)
+
+        #put current features and action into episodic memory, on random place
         idx = numpy.random.randint(self.episodic_memory_size)
-        self.episodic_memory[idx] = features_np.copy()
+        self.episodic_memory_features[idx]  = features_np.copy()
+        self.episodic_memory_actions[idx]   = actions_np.copy()
 
-        em_mean = self.episodic_memory.mean(axis=0)
-        em_std  = self.episodic_memory.std(axis=0)
-
-        entropy =  self.beta2*em_std.mean()
-
-        return entropy
-
+        #compute relative entropy
+        #the higher states variance s.t. low actions variance results to high relative entropy
+        ratio       = distances_features.std()/(0.1 + distances_actions.std())
+        motivation  = numpy.tanh(self.beta2*ratio)
+        
+        return motivation

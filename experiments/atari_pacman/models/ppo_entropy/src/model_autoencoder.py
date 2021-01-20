@@ -1,29 +1,6 @@
 import torch
 import torch.nn as nn
 
-class ResidualBlock(torch.nn.Module):
-    def __init__(self, channels, weight_init_gain = 1.0):
-        super(ResidualBlock, self).__init__()
-
-        
-        self.conv0  = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
-        self.act0   = nn.ReLU()
-        self.conv1  = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
-        self.act1   = nn.ReLU()
-            
-        torch.nn.init.xavier_uniform_(self.conv0.weight, gain=weight_init_gain)
-        torch.nn.init.xavier_uniform_(self.conv1.weight, gain=weight_init_gain)
-
-
-    def forward(self, x):
-        y  = self.conv0(x)
-        y  = self.act0(y)
-        y  = self.conv1(y)
-        y  = self.act1(y + x)
-        
-        return y
-
-
 class Model(torch.nn.Module):
     def __init__(self, input_shape, latent_size = 16):
         super(Model, self).__init__()
@@ -31,38 +8,36 @@ class Model(torch.nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.layers_encoder = [ 
-            nn.Conv2d(input_shape[0], 64, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(input_shape[0], 32, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
 
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
 
-            ResidualBlock(128),
-            ResidualBlock(128),
-            nn.AvgPool2d(kernel_size=2, stride=2, padding=0),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
 
-            ResidualBlock(128), 
-            ResidualBlock(128),
-            nn.AvgPool2d(kernel_size=2, stride=2, padding=0),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
 
-            nn.Conv2d(128, latent_size, kernel_size=1, stride=1, padding=0),
-            nn.ReLU()
+            nn.Conv2d(64, latent_size, kernel_size=1, stride=1, padding=0),
+            nn.ReLU() 
         ]
  
         self.layers_decoder = [ 
-            nn.ConvTranspose2d(latent_size, 128, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(latent_size, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.ReLU(),
 
             nn.ConvTranspose2d(64, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.ReLU(),
+
+            nn.ConvTranspose2d(64, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ReLU(),
+
+            nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ReLU(),
           
-            nn.Conv2d(64, input_shape[0], kernel_size=3, stride=1, padding=1)
+            nn.Conv2d(32, input_shape[0], kernel_size=1, stride=1, padding=0)
         ] 
   
         for i in range(len(self.layers_encoder)):

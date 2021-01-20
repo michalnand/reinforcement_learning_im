@@ -17,7 +17,7 @@ import models.ddpg_entropy.model.src.model_forward_target       as ModelForwardT
 import models.ddpg_entropy.model.src.model_autoencoder          as ModelAutoencoder
 import models.ddpg_entropy.model.src.config                     as Config
 
-path = "models/ddpg_entropy/model/"
+path = "models/ddpg_entropy/model/" 
 
 env = pybullet_envs.make("AntBulletEnv-v0")
 #env.render()

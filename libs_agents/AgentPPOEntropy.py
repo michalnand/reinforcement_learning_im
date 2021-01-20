@@ -87,7 +87,7 @@ class AgentPPOEntropy():
         curiosity_t         = self._curiosity(states_t, actions_one_hot_t)
         curiosity_np        = self.beta1*curiosity_t.detach().to("cpu").numpy()
 
-        entropy_np          = self.beta2*self._add_episodic_memory(states_t)
+        entropy_np          = self._add_episodic_memory(states_t, actions_one_hot_t)
 
         for e in range(self.actors):
             state, reward, done, _ = self.envs[e].step(actions[e])
@@ -183,7 +183,7 @@ class AgentPPOEntropy():
 
         self.policy_buffer.clear() 
 
-        print("loss ", self.loss_forward, self.curiosity_motivation, self.loss_autoencoder, self.entropy_motivation)
+        #print("loss ", self.loss_forward, self.curiosity_motivation, self.loss_autoencoder, self.entropy_motivation)
 
     
     def _compute_loss(self, states, logits, actions, returns, advantages):
@@ -251,7 +251,8 @@ class AgentPPOEntropy():
         features_t      = features_t.view(features_t.size(0), -1)
         features_count  = features_t.shape[1]
 
-        self.episodic_memory = numpy.zeros((self.actors, self.episodic_memory_size, features_count))
+        self.episodic_memory_features   = numpy.zeros((self.actors, self.episodic_memory_size, features_count))
+        self.episodic_memory_actions    = numpy.random.randn(self.actors, self.episodic_memory_size, self.actions_count)
 
     def _reset_episodic_memory(self, env_idx, state):
         state_t     = torch.from_numpy(state).to(self.model_autoencoder.device).unsqueeze(0).float()
@@ -261,23 +262,38 @@ class AgentPPOEntropy():
         features_np = features_t.squeeze(0).detach().to("cpu").numpy()
 
         for i in range(self.episodic_memory_size):
-            self.episodic_memory[env_idx][i] = features_np.copy()
+            self.episodic_memory_features[env_idx][i]    = features_np.copy()
 
-    def _add_episodic_memory(self, state_t):
+        self.episodic_memory_actions[env_idx]   = numpy.random.randn(self.episodic_memory_size, self.actions_count)
+
+    def _add_episodic_memory(self, state_t, actions_one_hot_t):
         features_t  = self.model_autoencoder.eval_features(state_t)
 
         features_t  = features_t.view(features_t.size(0), -1)
         features_np = features_t.detach().to("cpu").numpy()
 
-        #put current state into episodic memory, on random place
+        actions_one_hot_np = actions_one_hot_t.detach().to("cpu").numpy()
+
+        motivation = []
+        #put current features and action into episodic memory, on random place
         for e in range(self.actors):
+            distances_features  = ((self.episodic_memory_features[e] - features_np[e])**2).mean(axis=1)
+            distances_actions   = ((self.episodic_memory_actions[e]  - actions_one_hot_np[e])**2).mean(axis=1)
+
             idx = numpy.random.randint(self.episodic_memory_size)
-            self.episodic_memory[e][idx] = features_np[e].copy()
-         
-        em_mean = self.episodic_memory.mean(axis=1)
-        em_std  = self.episodic_memory.std(axis=1)
+            self.episodic_memory_features[e][idx]   = features_np[e].copy()
+            self.episodic_memory_actions[e][idx]    = actions_one_hot_np[e].copy()
+        
+            #compute relative entropy
+            #the higher states variance s.t. low actions variance results to high relative entropy
+            std_features = distances_features.std()
+            std_actions  = distances_actions.std()
 
-        entropy =  self.beta2*em_std.mean(axis=1)
+            ratio       = std_features/(0.1 + std_actions)
+            motivation_  = numpy.tanh(self.beta2*ratio)
 
-        return entropy
+            motivation.append(motivation_)
 
+        motivation = numpy.array(motivation)
+
+        return motivation

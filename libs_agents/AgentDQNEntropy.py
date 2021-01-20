@@ -76,7 +76,7 @@ class AgentDQNEntropy():
         state_next, self.reward, done, self.info = self.env.step(action)
  
         if self.enabled_training:
-            entropy = self._add_episodic_memory(state_t)
+            entropy = self._add_episodic_memory(state_t, action)
             self.experience_replay.add(self.state, action, self.reward, done, entropy)
 
         if self.enabled_training and (self.iterations > self.experience_replay.size):
@@ -209,23 +209,32 @@ class AgentDQNEntropy():
 
         features_np = features_t.detach().to("cpu").numpy()
 
-        self.episodic_memory        = numpy.tile(features_np, (self.episodic_memory_size, 1))
-    
+        self.episodic_memory_features  = numpy.tile(features_np, (self.episodic_memory_size, 1))
+        self.episodic_memory_actions   = numpy.zeros((self.episodic_memory_size, self.actions_count))
 
-    def _add_episodic_memory(self, state_t):
+
+    def _add_episodic_memory(self, state_t, action):
+        action_one_hot          = numpy.zeros(self.actions_count)
+        action_one_hot[action]  = 1.0
+
         features_t  = self.model_autoencoder.eval_features(state_t)
 
         features_t  = features_t.view(features_t.size(0), -1)
         features_np = features_t.detach().to("cpu").numpy()
 
-        #put current state into episodic memory, on random place
+        distances_features = ((self.episodic_memory_features - features_np)**2).mean(axis=1)
+        distances_actions = ((self.episodic_memory_actions  - action_one_hot)**2).mean(axis=1)
+
+        #put current features and action into episodic memory, on random place
         idx = numpy.random.randint(self.episodic_memory_size)
-        self.episodic_memory[idx] = features_np.copy()
+        self.episodic_memory_features[idx]  = features_np.copy()
+        self.episodic_memory_actions[idx]   = action_one_hot.copy()
 
-        em_mean = self.episodic_memory.mean(axis=0)
-        em_std  = self.episodic_memory.std(axis=0)
+        #compute relative entropy
+        #the higher states variance s.t. low actions variance results to high relative entropy
+        ratio       = distances_features.std()/(0.1 + distances_actions.std())
+        motivation  = numpy.tanh(self.beta2*ratio)
 
-        entropy =  self.beta2*em_std.mean()
-
-        return entropy
-
+        print(motivation)
+        
+        return motivation

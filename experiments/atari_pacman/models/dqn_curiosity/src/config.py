@@ -10,7 +10,7 @@ class Config():
         self.batch_size             = 32 
         self.learning_rate_dqn      = 0.0001
         self.learning_rate_forward  = 0.0004
-        self.beta                   = 100.0
+        self.beta                   = 10.0
                  
         self.exploration            = libs_common.decay.Const(0.05, 0.05)        
         self.experience_replay_size = 32768

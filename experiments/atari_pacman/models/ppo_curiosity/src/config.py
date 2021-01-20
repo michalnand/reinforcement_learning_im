@@ -12,5 +12,5 @@ class Config():
         
         self.learning_rate_ppo      = 0.00025
         self.learning_rate_forward  = 0.0002
-        self.beta                   = 100.0
+        self.beta                   = 10.0
         
