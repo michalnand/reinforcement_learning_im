@@ -87,7 +87,7 @@ def compute_motivation(env, policy, steps = 20000, beta=0.01):
 
     obs             = env.reset()
     
-    em_size         = 64
+    em_size         = 256
 
     episodic_memory_obs = numpy.zeros( (em_size, ) + obs.shape )
     for i in range(em_size):
@@ -121,7 +121,9 @@ def compute_motivation(env, policy, steps = 20000, beta=0.01):
 
         episodic_memory_obs_std      = episodic_memory_obs.std(axis=0).mean()        
         episodic_memory_actions_std  = episodic_memory_actions.std(axis=0).mean()
-        motivation                   = numpy.tanh(beta*episodic_memory_obs_std/(0.01 + episodic_memory_actions_std))
+        
+        motivation                 = numpy.tanh(beta*episodic_memory_obs_std)
+        #motivation                  = numpy.tanh(beta*episodic_memory_obs_std/(0.01 + episodic_memory_actions_std))
 
         result.append(motivation)
 
@@ -162,7 +164,7 @@ def policy_optimal():
         return 0
 
 if __name__ == "__main__":
-    env = RoomsEnv(16, 128)
+    env = RoomsEnv(10000, 256)
 
     motivation_random, score_random  = compute_motivation(env, policy_random)
     motivation_procast, score_procast = compute_motivation(env, policy_procast)
