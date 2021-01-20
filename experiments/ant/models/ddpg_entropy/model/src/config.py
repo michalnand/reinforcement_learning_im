@@ -16,7 +16,7 @@ class Config():
         self.batch_size          = 64
         self.update_frequency    = 4
 
-        self.episodic_memory_size   = 64
+        self.episodic_memory_size   = 256
 
         self.exploration   = libs_common.decay.Linear(1000000, 0.3, 0.05, 0.05)
 

@@ -212,6 +212,11 @@ class AgentDQNEntropy():
         self.episodic_memory_features  = numpy.tile(features_np, (self.episodic_memory_size, 1))
         self.episodic_memory_actions   = numpy.zeros((self.episodic_memory_size, self.actions_count))
 
+        for i in range(self.episodic_memory_size):
+            action_idx = numpy.random.randint(self.actions_count)
+            self.episodic_memory_actions[i][action_idx] = 1.0
+        
+
 
     def _add_episodic_memory(self, state_t, action):
         action_one_hot          = numpy.zeros(self.actions_count)
@@ -232,7 +237,7 @@ class AgentDQNEntropy():
         episodic_memory_features_std    = self.episodic_memory_features.std(axis=0).mean()        
         episodic_memory_actions_std     = self.episodic_memory_actions.std(axis=0).mean()
 
-        ratio                           = episodic_memory_features_std/(0.01 + episodic_memory_actions_std)
-        motivation                     = numpy.tanh(self.beta2*ratio)
+        ratio                          = episodic_memory_features_std/(0.01 + episodic_memory_actions_std)
+        motivation                     = self.beta2*numpy.tanh(ratio)
 
         return motivation

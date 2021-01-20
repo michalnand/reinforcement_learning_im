@@ -239,6 +239,6 @@ class AgentDDPGEntropy():
         episodic_memory_actions_std     = self.episodic_memory_actions.std(axis=0).mean()
 
         ratio                           = episodic_memory_features_std/(0.01 + episodic_memory_actions_std)
-        motivation                      = numpy.tanh(self.beta2*ratio)
+        motivation                      = self.beta2*numpy.tanh(ratio)
 
         return motivation

@@ -17,5 +17,5 @@ class Config():
         self.beta1                      = 10.0
         self.beta2                      = 0.01
 
-        self.episodic_memory_size       = 64
+        self.episodic_memory_size       = 256
         
