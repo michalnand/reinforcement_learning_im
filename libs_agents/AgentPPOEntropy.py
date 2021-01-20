@@ -252,7 +252,7 @@ class AgentPPOEntropy():
         features_count  = features_t.shape[1]
 
         self.episodic_memory_features   = numpy.zeros((self.actors, self.episodic_memory_size, features_count))
-        self.episodic_memory_actions    = numpy.random.zeros((self.actors, self.episodic_memory_size, self.actions_count))
+        self.episodic_memory_actions    = numpy.zeros((self.actors, self.episodic_memory_size, self.actions_count))
 
     def _reset_episodic_memory(self, env_idx, state):
         state_t     = torch.from_numpy(state).to(self.model_autoencoder.device).unsqueeze(0).float()
@@ -261,7 +261,7 @@ class AgentPPOEntropy():
 
         features_np = features_t.squeeze(0).detach().to("cpu").numpy()
 
-        self.episodic_memory_actions[env_idx]    = numpy.random.zeros((self.episodic_memory_size, self.actions_count))
+        self.episodic_memory_actions[env_idx]    = numpy.zeros((self.episodic_memory_size, self.actions_count))
 
         for i in range(self.episodic_memory_size):
             self.episodic_memory_features[env_idx][i]   = features_np.copy()
