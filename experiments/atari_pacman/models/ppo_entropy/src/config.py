@@ -15,7 +15,7 @@ class Config():
         self.learning_rate_autoencoder  = 0.0002
         
         self.beta1                      = 10.0
-        self.beta2                      = 0.1
+        self.beta2                      = 1.0
 
         self.episodic_memory_size       = 32
         

@@ -277,20 +277,17 @@ class AgentPPOEntropy():
         motivation = []
         #put current features and action into episodic memory, on random place
         for e in range(self.actors):
-            distances_features  = ((self.episodic_memory_features[e] - features_np[e])**2).mean(axis=1)
-            distances_actions   = ((self.episodic_memory_actions[e]  - actions_one_hot_np[e])**2).mean(axis=1)
-
             idx = numpy.random.randint(self.episodic_memory_size)
             self.episodic_memory_features[e][idx]   = features_np[e].copy()
             self.episodic_memory_actions[e][idx]    = actions_one_hot_np[e].copy()
-        
-            #compute relative entropy
-            #the higher states variance s.t. low actions variance results to high relative entropy
-            std_features = distances_features.std()
-            std_actions  = distances_actions.std()
 
-            ratio       = std_features/(0.1 + std_actions)
-            motivation_  = numpy.tanh(self.beta2*ratio)
+            #compute relative entropy
+            #the higher features variance s.t. low actions variance results to high relative entropy
+            episodic_memory_features_std    = self.episodic_memory_features[e].std(axis=0).mean()        
+            episodic_memory_actions_std     = self.episodic_memory_actions[e].std(axis=0).mean()
+
+            ratio                           = episodic_memory_features_std/(0.01 + episodic_memory_actions_std)
+            motivation_                     = numpy.tanh(self.beta2*ratio)
 
             motivation.append(motivation_)
 

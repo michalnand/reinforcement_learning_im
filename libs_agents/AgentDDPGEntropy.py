@@ -228,17 +228,17 @@ class AgentDDPGEntropy():
         features_t  = features_t.view(features_t.size(0), -1)
         features_np = features_t.detach().to("cpu").numpy()
 
-        distances_features = ((self.episodic_memory_features - features_np)**2).mean(axis=1)
-        distances_actions = ((self.episodic_memory_actions  - actions_np)**2).mean(axis=1)
-
         #put current features and action into episodic memory, on random place
         idx = numpy.random.randint(self.episodic_memory_size)
         self.episodic_memory_features[idx]  = features_np.copy()
         self.episodic_memory_actions[idx]   = actions_np.copy()
 
         #compute relative entropy
-        #the higher states variance s.t. low actions variance results to high relative entropy
-        ratio       = distances_features.std()/(0.1 + distances_actions.std())
-        motivation  = numpy.tanh(self.beta2*ratio)
-        
+        #the higher features variance s.t. low actions variance results to high relative entropy
+        episodic_memory_features_std    = self.episodic_memory_features.std(axis=0).mean()        
+        episodic_memory_actions_std     = self.episodic_memory_actions.std(axis=0).mean()
+
+        ratio                           = episodic_memory_features_std/(0.01 + episodic_memory_actions_std)
+        motivation                      = numpy.tanh(self.beta2*ratio)
+
         return motivation
