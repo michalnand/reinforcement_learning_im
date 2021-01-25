@@ -1,7 +1,8 @@
+python3 dqn_baseline.py
+python3 dqn_curiosity.py
+#python3 dqn_entropy.py
+
+
 python3 ppo_baseline.py
 python3 ppo_curiosity.py
-python3 ppo_entropy.py
-
-#python3 dqn_baseline.py
-#python3 dqn_curiosity.py
-#python3 dqn_entropy.py
+#python3 ppo_entropy.py

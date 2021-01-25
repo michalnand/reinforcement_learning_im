@@ -12,29 +12,29 @@ class Model(torch.nn.Module):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        fc_size = (input_shape[1]//16) * (input_shape[2]//16)
+        fc_size = (input_shape[1]//12) * (input_shape[2]//12)
         self.layers = [
-            nn.Conv2d(input_shape[0] + outputs_count, 32, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
+            nn.Conv2d(input_shape[0] + outputs_count, 32, kernel_size=8, stride=4, padding=0),
+            nn.ELU(),
+            
+            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
+            nn.ELU(),
 
-            Flatten(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
+            nn.ELU(),
+
+            nn.Flatten(), 
 
             nn.Linear(64*fc_size, 512),
-            nn.ReLU(),
+            nn.ELU(),
             nn.Linear(512, 512),
-            nn.ReLU(),
+            nn.ELU(),
             nn.Linear(512, 512)
         ]
 
         for i in range(len(self.layers)):
             if hasattr(self.layers[i], "weight"):
-                torch.nn.init.xavier_uniform_(self.layers[i].weight)
+                torch.nn.init.orthogonal_(self.layers[i].weight, 2.0**0.5)
                 
         self.model = nn.Sequential(*self.layers)
         self.model.to(self.device)

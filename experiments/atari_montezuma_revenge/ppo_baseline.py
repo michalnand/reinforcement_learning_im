@@ -25,9 +25,9 @@ for e in range(config.actors):
 
 agent = libs_agents.AgentPPO(envs, Model, Config)
 
-max_iterations = 16*(10**6) 
+max_iterations = 1*(10**6)
 
-trainig = TrainingIterations(envs, agent, max_iterations, path, 10000)
+trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
 trainig.run() 
 
 '''

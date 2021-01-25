@@ -107,7 +107,7 @@ class AgentDDPGEntropy():
 
         #curiosity internal motivation
         curiosity_prediction_t      = self._curiosity(state_t, action_t)
-        curiosity_t                 = self.beta1*curiosity_prediction_t.detach()
+        curiosity_t                 = self.beta1*torch.tanh(curiosity_prediction_t.detach())
 
         #train forward model, MSE loss
         loss_forward = curiosity_prediction_t.mean()
@@ -220,7 +220,7 @@ class AgentDDPGEntropy():
         features_np = features_t.detach().to("cpu").numpy()
 
         self.episodic_memory_features  = numpy.tile(features_np, (self.episodic_memory_size, 1))
-        self.episodic_memory_actions   = numpy.random.randn(self.episodic_memory_size, self.actions_count)
+
 
     def _add_episodic_memory(self, state_t, actions_np):
         features_t  = self.model_autoencoder.eval_features(state_t)
@@ -228,17 +228,17 @@ class AgentDDPGEntropy():
         features_t  = features_t.view(features_t.size(0), -1)
         features_np = features_t.detach().to("cpu").numpy()
 
-        #put current features and action into episodic memory, on random place
+        episodic_memory_std_old    = self.episodic_memory_features.std(axis=0).mean() 
+
+        #put current features into episodic memory, on random place
         idx = numpy.random.randint(self.episodic_memory_size)
         self.episodic_memory_features[idx]  = features_np.copy()
-        self.episodic_memory_actions[idx]   = actions_np.copy()
+
+        episodic_memory_std_new    = self.episodic_memory_features.std(axis=0).mean() 
 
         #compute relative entropy
-        #the higher features variance s.t. low actions variance results to high relative entropy
-        episodic_memory_features_std    = self.episodic_memory_features.std(axis=0).mean()        
-        episodic_memory_actions_std     = self.episodic_memory_actions.std(axis=0).mean()
+        dif = episodic_memory_std_new - episodic_memory_std_old
+        motivation = self.beta2*numpy.tanh(dif)
 
-        ratio                           = episodic_memory_features_std/(0.01 + episodic_memory_actions_std)
-        motivation                      = self.beta2*numpy.tanh(ratio)
-
+      
         return motivation

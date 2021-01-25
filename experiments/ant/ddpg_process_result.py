@@ -29,13 +29,8 @@ files.append("./models/ddpg_curiosity/run_6/result/result.log")
 files.append("./models/ddpg_curiosity/run_7/result/result.log")
 ddpg_curiosity_rnd = RLStatsCompute(files) 
 
-
 files = []
 files.append("./models/ddpg_entropy/model/result/result.log")
-#files.append("./models/ddpg_entropy/run_0/result/result.log")
-#files.append("./models/ddpg_entropy/run_1/result/result.log")
-#files.append("./models/ddpg_entropy/run_2/result/result.log")
-#files.append("./models/ddpg_entropy/run_3/result/result.log")
 ddpg_curiosity_entropy = RLStatsCompute(files) 
 
 
@@ -92,6 +87,7 @@ plt.fill_between(ddpg_curiosity_rnd.mean[0], ddpg_curiosity_rnd.lower[10], ddpg_
 
 plt.legend(loc='upper right', borderaxespad=0.)
 plt.savefig(result_path + "ddpg_curiosity_internal_motivation.png", dpi = 300)
+
 
 
 plt.cla()

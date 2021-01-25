@@ -15,7 +15,7 @@ class TrainingLog:
 
         self.episode_score_sum_filtered = 0.0
 
-        self.episode_score_best = -10**6
+        self.episode_score_best = 0.0
 
         self.episode_time_prev = time.time()
         self.episode_time_now  = time.time()

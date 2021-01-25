@@ -27,8 +27,6 @@ class Model(torch.nn.Module):
 
             nn.Linear(64*fc_size, 512),
             nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
             nn.Linear(512, 512)
         ]
 

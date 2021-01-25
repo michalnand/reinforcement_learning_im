@@ -29,7 +29,7 @@ agent = libs_agents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTa
 
 max_iterations = 1*(10**6) 
 
-trainig = TrainingIterations(envs, agent, max_iterations, path, 10000)
+trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
 trainig.run() 
 
 '''

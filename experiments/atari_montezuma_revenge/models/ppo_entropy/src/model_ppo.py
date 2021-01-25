@@ -1,33 +1,6 @@
 import torch
 import torch.nn as nn
 
-class Flatten(nn.Module):
-    def forward(self, input):
-        return input.view(input.size(0), -1)
-
-class ResidualBlock(torch.nn.Module):
-    def __init__(self, channels, weight_init_gain = 1.0):
-        super(ResidualBlock, self).__init__()
-
-        
-        self.conv0  = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
-        self.act0   = nn.ReLU()
-        self.conv1  = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
-        self.act1   = nn.ReLU()
-            
-        torch.nn.init.xavier_uniform_(self.conv0.weight, gain=weight_init_gain)
-        torch.nn.init.xavier_uniform_(self.conv1.weight, gain=weight_init_gain)
-
-
-    def forward(self, x):
-        y  = self.conv0(x)
-        y  = self.act0(y)
-        y  = self.conv1(y)
-        y  = self.act1(y + x)
-        
-        return y
-
-  
 class Model(torch.nn.Module):
 
     def __init__(self, input_shape, outputs_count):
@@ -42,26 +15,25 @@ class Model(torch.nn.Module):
         input_height    = self.input_shape[1]
         input_width     = self.input_shape[2]    
 
-
         fc_inputs_count = 128*(input_width//16)*(input_height//16)
   
         self.layers_features = [ 
             nn.Conv2d(input_channels, 64, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
 
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
 
-            ResidualBlock(128),
-            ResidualBlock(128),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
             nn.AvgPool2d(kernel_size=2, stride=2, padding=0),
 
-            ResidualBlock(128), 
-            ResidualBlock(128),
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
             nn.AvgPool2d(kernel_size=2, stride=2, padding=0),
 
-            Flatten()
-        ] 
+            nn.Flatten()
+        ]
 
         self.layers_value = [
             nn.Linear(fc_inputs_count, 512),

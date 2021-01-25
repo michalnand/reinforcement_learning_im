@@ -13,7 +13,7 @@ import models.ppo_entropy.src.model_forward         as ModelForward
 import models.ppo_entropy.src.model_forward_target  as ModelForwardTarget
 import models.ppo_entropy.src.model_autoencoder     as ModelAutoencoder
 import models.ppo_entropy.src.config                as Config
-
+ 
 
 path = "models/ppo_entropy/"
 
@@ -27,9 +27,9 @@ for e in range(config.actors):
 
 agent = libs_agents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
 
-max_iterations = 16*(10**6) 
+max_iterations = 1*(10**6)
 
-trainig = TrainingIterations(envs, agent, max_iterations, path, 10000)
+trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
 trainig.run() 
 
 '''

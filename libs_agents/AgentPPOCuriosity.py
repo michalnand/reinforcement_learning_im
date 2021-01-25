@@ -72,7 +72,7 @@ class AgentPPOCuriosity():
         actions_one_hot_t   = self._action_one_hot(numpy.array(actions))
         curiosity_t         = self._curiosity(states_t, actions_one_hot_t)
 
-        curiosity_np        = self.beta*curiosity_t.detach().to("cpu").numpy()
+        curiosity_np        = self.beta*numpy.tanh(curiosity_t.detach().to("cpu").numpy())
 
         for e in range(self.actors):
             state, reward, done, _ = self.envs[e].step(actions[e])

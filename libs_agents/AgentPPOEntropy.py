@@ -85,7 +85,7 @@ class AgentPPOEntropy():
 
         actions_one_hot_t   = self._action_one_hot(numpy.array(actions))
         curiosity_t         = self._curiosity(states_t, actions_one_hot_t)
-        curiosity_np        = self.beta1*curiosity_t.detach().to("cpu").numpy()
+        curiosity_np        = self.beta1*numpy.tanh(curiosity_t.detach().to("cpu").numpy())
 
         entropy_np          = self._add_episodic_memory(states_t, actions_one_hot_t)
 
@@ -268,6 +268,7 @@ class AgentPPOEntropy():
             
             action_idx = numpy.random.randint(self.actions_count)
             self.episodic_memory_actions[env_idx][i][action_idx] = 1.0
+
         
             
 
@@ -292,11 +293,11 @@ class AgentPPOEntropy():
             episodic_memory_features_std    = self.episodic_memory_features[e].std(axis=0).mean()        
             episodic_memory_actions_std     = self.episodic_memory_actions[e].std(axis=0).mean()
 
-            ratio                           = episodic_memory_features_std/(0.01 + episodic_memory_actions_std)
-            motivation_                     = self.beta2*numpy.tanh(ratio)
+            motivation_                     = self.beta2*numpy.tanh(episodic_memory_features_std)
 
             motivation.append(motivation_)
 
         motivation = numpy.array(motivation)
 
         return motivation
+

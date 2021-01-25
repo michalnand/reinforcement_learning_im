@@ -37,7 +37,7 @@ class Model(torch.nn.Module):
             nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.ReLU(),
           
-            nn.Conv2d(32, input_shape[0], kernel_size=1, stride=1, padding=1)
+            nn.Conv2d(32, input_shape[0], kernel_size=1, stride=1, padding=0)
         ] 
   
         for i in range(len(self.layers_encoder)):

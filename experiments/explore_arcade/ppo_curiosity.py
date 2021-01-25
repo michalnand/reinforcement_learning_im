@@ -19,7 +19,7 @@ path = "models/ppo_curiosity/"
 config  = Config.Config()
 envs    = []
 for e in range(config.actors):
-    env = gym.make("ExploreArcadeGeneric-v0", size=4)
+    env = gym.make("ExploreArcadeGeneric-v0", size=3)
     envs.append(env)
 
 

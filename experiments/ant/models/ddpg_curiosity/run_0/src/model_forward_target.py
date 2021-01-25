@@ -14,8 +14,8 @@ class Model(torch.nn.Module):
             nn.Linear(hidden_count, hidden_count//2)           
         ] 
 
-        torch.nn.init.xavier_uniform_(self.layers[0].weight)
-        torch.nn.init.xavier_uniform_(self.layers[2].weight)
+        torch.nn.init.normal_(self.layers[0].weight, std=0.1)
+        torch.nn.init.normal_(self.layers[2].weight, std=0.1)
  
         self.model = nn.Sequential(*self.layers) 
         self.model.to(self.device)

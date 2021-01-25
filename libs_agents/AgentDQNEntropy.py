@@ -106,7 +106,7 @@ class AgentDQNEntropy():
         #curiosity internal motivation
         action_one_hot_t            = self._action_one_hot(action_t)
         curiosity_prediction_t      = self._curiosity(state_t, action_one_hot_t)
-        curiosity_t                 = self.beta1*curiosity_prediction_t.detach()
+        curiosity_t                 = self.beta1*torch.tanh(curiosity_prediction_t.detach())
        
         #train forward model, MSE loss
         loss_forward = curiosity_prediction_t.mean()
@@ -216,7 +216,7 @@ class AgentDQNEntropy():
             action_idx = numpy.random.randint(self.actions_count)
             self.episodic_memory_actions[i][action_idx] = 1.0
         
-
+        self.motivation_long_term = 0.0
 
     def _add_episodic_memory(self, state_t, action):
         action_one_hot          = numpy.zeros(self.actions_count)
@@ -240,4 +240,8 @@ class AgentDQNEntropy():
         ratio                          = episodic_memory_features_std/(0.01 + episodic_memory_actions_std)
         motivation                     = self.beta2*numpy.tanh(ratio)
 
-        return motivation
+        k = 0.05 
+        self.motivation_long_term = (1.0 - k)*self.motivation_long_term + k*motivation
+
+        return motivation - self.motivation_long_term
+

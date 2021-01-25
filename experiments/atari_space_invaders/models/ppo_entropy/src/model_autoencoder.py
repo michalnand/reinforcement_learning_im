@@ -21,7 +21,7 @@ class Model(torch.nn.Module):
             nn.ReLU(),
 
             nn.Conv2d(64, latent_size, kernel_size=1, stride=1, padding=0),
-            nn.ReLU()
+            nn.ReLU() 
         ]
  
         self.layers_decoder = [ 

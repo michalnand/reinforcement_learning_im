@@ -8,33 +8,6 @@ sys.path.insert(0, '../../../../..')
 import libs_layers
 
 
-class Flatten(nn.Module):
-    def forward(self, input):
-        return input.view(input.size(0), -1)
-
-class ResidualBlock(torch.nn.Module):
-    def __init__(self, channels, weight_init_gain = 1.0):
-        super(ResidualBlock, self).__init__()
-
-        
-        self.conv0  = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
-        self.act0   = nn.ReLU()
-        self.conv1  = nn.Conv2d(channels, channels, kernel_size=3, stride=1, padding=1)
-        self.act1   = nn.ReLU()
-            
-        torch.nn.init.xavier_uniform_(self.conv0.weight, gain=weight_init_gain)
-        torch.nn.init.xavier_uniform_(self.conv1.weight, gain=weight_init_gain)
-
-
-    def forward(self, x):
-        y  = self.conv0(x)
-        y  = self.act0(y)
-        y  = self.conv1(y)
-        y  = self.act1(y + x)
-        
-        return y
-
-  
 class Model(torch.nn.Module):
 
     def __init__(self, input_shape, outputs_count):
@@ -56,18 +29,18 @@ class Model(torch.nn.Module):
             nn.Conv2d(input_channels, 64, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
 
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
 
-            ResidualBlock(128),
-            ResidualBlock(128),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
             nn.AvgPool2d(kernel_size=2, stride=2, padding=0),
 
-            ResidualBlock(128), 
-            ResidualBlock(128),
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
             nn.AvgPool2d(kernel_size=2, stride=2, padding=0),
 
-            Flatten()
+            nn.Flatten()
         ] 
 
         self.layers_value = [
@@ -125,16 +98,16 @@ class Model(torch.nn.Module):
     def save(self, path):
         print("saving ", path)
 
-        torch.save(self.model_features.state_dict(), path + "model_dqn_features.pt")
-        torch.save(self.model_value.state_dict(), path + "model_dqn_value.pt")
-        torch.save(self.model_advantage.state_dict(), path + "model_dqn_advantage.pt")
+        torch.save(self.model_features.state_dict(), path + "model_features.pt")
+        torch.save(self.model_value.state_dict(), path + "model_value.pt")
+        torch.save(self.model_advantage.state_dict(), path + "model_advantage.pt")
 
     def load(self, path):
         print("loading ", path) 
 
-        self.model_features.load_state_dict(torch.load(path + "model_dqn_features.pt", map_location = self.device))
-        self.model_value.load_state_dict(torch.load(path + "model_dqn_value.pt", map_location = self.device))
-        self.model_advantage.load_state_dict(torch.load(path + "model_dqn_advantage.pt", map_location = self.device))
+        self.model_features.load_state_dict(torch.load(path + "model_features.pt", map_location = self.device))
+        self.model_value.load_state_dict(torch.load(path + "model_value.pt", map_location = self.device))
+        self.model_advantage.load_state_dict(torch.load(path + "model_advantage.pt", map_location = self.device))
         
         self.model_features.eval() 
         self.model_value.eval() 

@@ -95,7 +95,7 @@ class AgentDDPGCuriosity():
 
         #curiosity internal motivation
         curiosity_prediction_t      = self._curiosity(state_t, action_t)
-        curiosity_t                 = self.beta*curiosity_prediction_t.detach()
+        curiosity_t                 = self.beta*torch.tanh(curiosity_prediction_t.detach())
 
         #train forward model, MSE loss
         loss_forward = curiosity_prediction_t.mean()
