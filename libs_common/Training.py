@@ -1,5 +1,6 @@
 import numpy
 from .TrainingLog import *
+from .MultiEnv import *
 import time
 
 
@@ -21,6 +22,10 @@ class TrainingIterations:
         fps        = 0.0
 
         if isinstance(self.env, list):
+            env = self.env[0]
+        elif isinstance(self.env, MultiEnvSeq):
+            env = self.env[0]
+        elif isinstance(self.env, MultiEnvParallel):
             env = self.env[0]
         else:
             env = self.env
@@ -74,7 +79,7 @@ class TrainingIterations:
                 self.agent.save(self.saving_path)
                 print("\n\n")
 
-            k = 0.02
+            k   = 0.02
             fps = (1.0-k)*fps + k*1.0/(time_stop - time_start)
   
             if iteration%1000 == 0:

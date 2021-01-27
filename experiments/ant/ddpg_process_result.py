@@ -30,7 +30,14 @@ files.append("./models/ddpg_curiosity/run_7/result/result.log")
 ddpg_curiosity_rnd = RLStatsCompute(files) 
 
 files = []
-files.append("./models/ddpg_entropy/model/result/result.log")
+files.append("./models/ddpg_entropy/run_0/result/result.log")
+files.append("./models/ddpg_entropy/run_1/result/result.log")
+files.append("./models/ddpg_entropy/run_2/result/result.log")
+files.append("./models/ddpg_entropy/run_3/result/result.log")
+files.append("./models/ddpg_entropy/run_4/result/result.log")
+files.append("./models/ddpg_entropy/run_5/result/result.log")
+files.append("./models/ddpg_entropy/run_6/result/result.log")
+files.append("./models/ddpg_entropy/run_7/result/result.log")
 ddpg_curiosity_entropy = RLStatsCompute(files) 
 
 

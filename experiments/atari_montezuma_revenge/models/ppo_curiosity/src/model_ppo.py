@@ -19,17 +19,17 @@ class Model(torch.nn.Module):
   
         self.layers_features = [ 
             nn.Conv2d(input_channels, 64, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
+            nn.ELU(),
 
             nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
+            nn.ELU(),
 
             nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
+            nn.ELU(),
             nn.AvgPool2d(kernel_size=2, stride=2, padding=0),
 
             nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
+            nn.ELU(),
             nn.AvgPool2d(kernel_size=2, stride=2, padding=0),
 
             nn.Flatten()
@@ -37,28 +37,28 @@ class Model(torch.nn.Module):
 
         self.layers_value = [
             nn.Linear(fc_inputs_count, 512),
-            nn.ReLU(),                       
+            nn.ELU(),                       
             nn.Linear(512, 1)    
         ]  
 
         self.layers_policy = [
             nn.Linear(fc_inputs_count, 512),
-            nn.ReLU(),                      
+            nn.ELU(),                      
             nn.Linear(512, outputs_count)
         ]
  
   
         for i in range(len(self.layers_features)):
             if hasattr(self.layers_features[i], "weight"):
-                torch.nn.init.xavier_uniform_(self.layers_features[i].weight)
+                torch.nn.init.orthogonal_(self.layers_features[i].weight, 2.0**0.5)
 
         for i in range(len(self.layers_value)):
             if hasattr(self.layers_value[i], "weight"):
-                torch.nn.init.xavier_uniform_(self.layers_value[i].weight)
+                torch.nn.init.orthogonal_(self.layers_value[i].weight, 2.0**0.5)
 
         for i in range(len(self.layers_policy)):
             if hasattr(self.layers_policy[i], "weight"):
-                torch.nn.init.xavier_uniform_(self.layers_policy[i].weight)
+                torch.nn.init.orthogonal_(self.layers_policy[i].weight, 2.0**0.5)
 
 
         self.model_features = nn.Sequential(*self.layers_features)

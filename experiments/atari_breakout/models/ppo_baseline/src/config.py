@@ -1,7 +1,4 @@
-import libs_common.decay
-
 class Config(): 
-
     def __init__(self):
         self.gamma                  = 0.99
         self.entropy_beta           = 0.001

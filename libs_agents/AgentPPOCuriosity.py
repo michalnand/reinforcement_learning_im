@@ -16,6 +16,11 @@ class AgentPPOCuriosity():
         self.entropy_beta       = config.entropy_beta
         self.eps_clip           = config.eps_clip
 
+        if hasattr(config, "critic_loss_proportion"):
+            self.critic_loss_proportion = config.critic_loss_proportion
+        else:
+            self.critic_loss_proportion = 1.0
+
         self.steps              = config.steps
         self.batch_size         = config.batch_size        
         
@@ -54,9 +59,6 @@ class AgentPPOCuriosity():
         self.enabled_training = False
 
     def main(self):
-        rewards = []
-        dones   = []
-        
         states_t            = torch.tensor(self.states, dtype=torch.float).detach().to(self.model_ppo.device)
  
         logits_t, values_t  = self.model_ppo.forward(states_t)
@@ -68,28 +70,26 @@ class AgentPPOCuriosity():
         actions = []
         for e in range(self.actors):
             actions.append(self._sample_action(logits_t[e]))
+        
 
-        actions_one_hot_t   = self._action_one_hot(numpy.array(actions))
-        curiosity_t         = self._curiosity(states_t, actions_one_hot_t)
+        action_one_hot_t    = self._action_one_hot(numpy.array(actions))
 
+        curiosity_t         = self._curiosity(states_t, action_one_hot_t)
         curiosity_np        = self.beta*numpy.tanh(curiosity_t.detach().to("cpu").numpy())
 
-        for e in range(self.actors):
-            state, reward, done, _ = self.envs[e].step(actions[e])
-            
+        states, rewards, dones, _ = self.envs.step(actions)
+
+        for e in range(self.actors):            
             if self.enabled_training:
-                self.policy_buffer.add(e, states_np[e], logits_np[e], values_np[e], actions[e], reward + curiosity_np[e], done)
+                self.policy_buffer.add(e, states_np[e], logits_np[e], values_np[e], actions[e], rewards[e] + curiosity_np[e], dones[e])
 
                 if self.policy_buffer.is_full():
                     self.train()
 
-            if done:
-                state = self.envs[e].reset()
-
-            self.states[e] = state.copy()
-
-            rewards.append(reward)
-            dones.append(done)
+            if dones[e]:
+                self.states[e] = self.envs[e].reset()
+            else:
+                self.states[e] = states[e].copy()
 
         k = 0.02
         self.internal_motivation    = (1.0 - k)*self.internal_motivation + k*curiosity_np.mean()
@@ -134,16 +134,16 @@ class AgentPPOCuriosity():
                 self.optimizer_ppo.zero_grad()        
                 loss.backward()
                 self.optimizer_ppo.step()
-
+                
                 #train forward model, MSE loss
-                actions_one_hot_t   = self._action_one_hot(actions)
-                curiosity_t         = self._curiosity(states, actions_one_hot_t)
+                action_one_hot_t    = self._action_one_hot(actions)
+                curiosity_t         = self._curiosity(states, action_one_hot_t)
 
                 loss_forward = curiosity_t.mean()
                 self.optimizer_forward.zero_grad()
                 loss_forward.backward()
                 self.optimizer_forward.step()
- 
+
                 k = 0.02
                 self.loss_forward  = (1.0 - k)*self.loss_forward + k*loss_forward.detach().to("cpu").numpy()
 
@@ -165,7 +165,7 @@ class AgentPPOCuriosity():
         '''
         values_new = values_new.squeeze(1)
         loss_value = (returns.detach() - values_new)**2
-        loss_value = loss_value.mean()
+        loss_value = self.critic_loss_proportion*loss_value.mean()
 
         ''' 
         compute actor loss, surrogate loss

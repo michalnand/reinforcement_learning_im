@@ -7,6 +7,7 @@ sys.path.insert(0, '../..')
 import libs_agents
 from libs_common.Training import *
 from libs_common.atari_wrapper import *
+from libs_common.MultiEnv import *
 
 import models.ppo_entropy.src.model_ppo             as ModelPPO
 import models.ppo_entropy.src.model_forward         as ModelForward
@@ -24,10 +25,11 @@ for e in range(config.actors):
     env = AtariWrapper(env)
     envs.append(env)
 
+envs = MultiEnvParallel(envs)
 
 agent = libs_agents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
 
-max_iterations = 1*(10**6)
+max_iterations = 1000000
 
 trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
 trainig.run() 

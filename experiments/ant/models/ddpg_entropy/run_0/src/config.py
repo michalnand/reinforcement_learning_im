@@ -11,7 +11,7 @@ class Config():
 
         self.tau                    = 0.001 
         self.beta1                  = 10.0
-        self.beta2                  = 1.0
+        self.beta2                  = 100.0
 
         self.batch_size          = 64
         self.update_frequency    = 4

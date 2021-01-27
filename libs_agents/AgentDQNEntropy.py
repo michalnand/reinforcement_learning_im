@@ -114,9 +114,10 @@ class AgentDQNEntropy():
         loss_forward.backward()
         self.optimizer_forward.step()
 
-        #train autoencoder model, MSE loss
-        state_predicted_t, _   = self.model_autoencoder(state_t)
-        loss_autoencoder    = (state_t.detach() - state_predicted_t)**2
+        #train denoising autoencoder model, MSE loss
+        state_noised_t          = state_t + 0.1*torch.randn(state_t.shape).to(state_t.device)
+        state_predicted_t, _    = self.model_autoencoder(state_noised_t)
+        loss_autoencoder        = (state_t.detach() - state_predicted_t)**2
 
         loss_autoencoder = loss_autoencoder.mean()
         self.optimizer_autoencoder.zero_grad()

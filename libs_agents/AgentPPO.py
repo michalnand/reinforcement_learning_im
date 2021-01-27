@@ -44,10 +44,7 @@ class AgentPPO():
     def disable_training(self):
         self.enabled_training = False
 
-    def main(self):
-        rewards = []
-        dones   = []
-        
+    def main(self):        
         states_t            = torch.tensor(self.states, dtype=torch.float).detach().to(self.model.device)
  
         logits_t, values_t  = self.model.forward(states_t)
@@ -56,25 +53,23 @@ class AgentPPO():
         logits_np = logits_t.detach().to("cpu").numpy()
         values_np = values_t.detach().to("cpu").numpy()
 
-       
+        actions = []
         for e in range(self.actors):
-            action = self._sample_action(logits_t[e])
-                
-            state, reward, done, _ = self.envs[e].step(action)
-            
+            actions.append(self._sample_action(logits_t[e]))
+
+        states, rewards, dones, _ = self.envs.step(actions)
+        
+        for e in range(self.actors):
             if self.enabled_training:
-                self.policy_buffer.add(e, states_np[e], logits_np[e], values_np[e], action, reward, done)
+                self.policy_buffer.add(e, states_np[e], logits_np[e], values_np[e], actions[e], rewards[e], dones[e])
 
                 if self.policy_buffer.is_full():
                     self.train()
                     
-            if done:
-                state = self.envs[e].reset()
-
-            self.states[e] = state.copy()
-
-            rewards.append(reward)
-            dones.append(done)
+            if dones[e]:
+                self.states[e] = self.envs[e].reset()
+            else:
+                self.states[e] = states[e].copy()
 
         self.iterations+= 1
         return rewards[0], dones[0]
