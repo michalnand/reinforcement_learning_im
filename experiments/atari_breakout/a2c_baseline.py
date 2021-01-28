@@ -22,13 +22,13 @@ for e in range(config.actors):
     env = AtariWrapper(env)
     envs.append(env)
 
-envs = MultiEnvSeq(envs)
+envs = MultiEnvParallel(envs)
 
 agent = libs_agents.AgentA2C(envs, Model, Config)
 
-max_iterations = 1*(10**6) 
+max_iterations = 125000
 
-trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
+trainig = TrainingIterations(envs, agent, max_iterations, path, 100)
 trainig.run() 
 
 '''

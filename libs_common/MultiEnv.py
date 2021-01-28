@@ -164,7 +164,7 @@ if __name__ == "__main__":
 	
 	k = 0.02
 	fps = 0
-
+	steps = 0
 	while True:
 		
 		actions = numpy.random.randint(n_actions, size=n_envs)
@@ -175,11 +175,14 @@ if __name__ == "__main__":
 
 		for j in range(len(done)):
 			if done[j]:
-				multi_envs[i].reset()
+				multi_envs[j].reset() 
 
-	
-		fps = (1.0-k)*fps + k*1.0/(time_stop - time_start)
-		print("FPS = ", fps, fps*n_envs)
+		fps = (1.0 - k)*fps + k*1.0/(time_stop - time_start)
+
+		if steps%100 == 0:	
+			print("FPS = ", fps, fps*n_envs)
+
+		steps+= 1
 		
 		#multi_envs.render()
 

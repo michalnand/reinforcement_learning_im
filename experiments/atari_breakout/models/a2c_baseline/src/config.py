@@ -4,8 +4,8 @@ class Config():
         self.entropy_beta           = 0.001
 
         self.steps                  = 128
-        self.batch_size             = 32
+        self.batch_size             = 4
         
-        self.actors                 = 8
+        self.actors                 = 64
         
         self.learning_rate          = 0.00025

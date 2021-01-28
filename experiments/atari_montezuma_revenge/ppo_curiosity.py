@@ -28,7 +28,7 @@ envs = MultiEnvParallel(envs)
 
 agent = libs_agents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForwardTarget, Config)
 
-max_iterations = 1000000
+max_iterations = (10**6)
 
 trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
 trainig.run() 
