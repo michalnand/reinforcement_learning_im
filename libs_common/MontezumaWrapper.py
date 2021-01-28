@@ -2,30 +2,6 @@ import gym
 import numpy
 from PIL import Image
 
-class NopOpsEnv(gym.Wrapper):
-    def __init__(self, env=None, max_count=30):
-        super(NopOpsEnv, self).__init__(env)
-        self.max_count = max_count
-
-    def reset(self):
-        self.env.reset()
-
-        noops = numpy.random.randint(1, self.max_count + 1)
-         
-        for _ in range(noops):
-            obs, _, done, _ = self.env.step(0)
-
-            if done:
-                self.env.reset()
-                obs, _, _ ,_ = self.env.step(1)
-                obs, _, _ ,_ = self.env.step(2)
-           
-        return obs
-
-    def step(self, action):
-        obs, reward, done, info = self.env.step(action)
-        return obs, reward, done, info
-
 class MaxAndSkipEnv(gym.Wrapper):
     def __init__(self, env, skip=4):
         gym.Wrapper.__init__(self, env)
@@ -132,8 +108,6 @@ class EpisodicLifeEnv(gym.Wrapper):
         if self.was_real_done:
             obs = self.env.reset(**kwargs)
         else:
-            obs, _, _, _ = self.env.step(1)
-            obs, _, _, _ = self.env.step(2)
             obs, _, _, _ = self.env.step(0) 
 
         self.lives = self.env.unwrapped.ale.lives()
@@ -142,7 +116,6 @@ class EpisodicLifeEnv(gym.Wrapper):
 
 
 def MontezumaWrapper(env, height = 96, width = 96, frame_stacking=4, frame_skipping=4, max_steps = 4500):
-    env = NopOpsEnv(env)
     env = MaxAndSkipEnv(env, frame_skipping)
     env = ResizeEnv(env, height, width, frame_stacking)
     env = MaxStepsEnv(env, max_steps)
