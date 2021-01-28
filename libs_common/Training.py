@@ -32,7 +32,12 @@ class TrainingIterations:
 
         raw_score_per_episode_best      = 0.0
 
-        score_per_episode_buffer = numpy.zeros(100)
+        if self.iterations_count < 1000000:
+            averaging_episodes = 20
+        else:
+            averaging_episodes = 100
+
+        score_per_episode_buffer = numpy.zeros(averaging_episodes)
 
         for iteration in range(self.iterations_count):
             

@@ -9,7 +9,7 @@ class Model(torch.nn.Module):
 
         fc_size = (input_shape[1]//12) * (input_shape[2]//12)
         self.layers = [
-            nn.Conv2d(input_shape[0] + outputs_count, 32, kernel_size=8, stride=4, padding=0),
+            nn.Conv2d(input_shape[0], 32, kernel_size=8, stride=4, padding=0),
             nn.ELU(),
             
             nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
@@ -35,13 +35,7 @@ class Model(torch.nn.Module):
         print("\n\n")
 
     def forward(self, state, action):
-        height  = state.shape[2]
-        width   = state.shape[3]
-        action_ = action.unsqueeze(2).unsqueeze(2).repeat(1, 1, height, width)
-
-        x = torch.cat([state, action_], dim=1).detach()
-
-        return self.model(x)
+        return self.model(state)
 
     def save(self, path):
         torch.save(self.model.state_dict(), path + "model_forward_target.pt")
