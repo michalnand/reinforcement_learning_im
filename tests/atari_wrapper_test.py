@@ -28,8 +28,8 @@ print(obs)
 print(obs.shape)
 
 
-im = Image.fromarray(obs[0]*255.0)
-im.show()
+#im = Image.fromarray(obs[0]*255.0)
+#im.show()
 
 k = 0.02
 fps = 0
@@ -37,7 +37,7 @@ while True:
     time_start = time.time()
     reward, done = agent.main()
     time_stop  = time.time()
-    env.render()
+
 
     fps = (1.0-k)*fps + k*1.0/(time_stop - time_start)
 
@@ -45,8 +45,11 @@ while True:
     if reward != 0:
         print("reward = ", reward)
     
+    
     if done:
         print("FPS = ", round(fps, 1))
         print("DONE \n\n")
     
+    env.render()
     time.sleep(0.01)
+    

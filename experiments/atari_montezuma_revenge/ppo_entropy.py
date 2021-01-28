@@ -6,7 +6,7 @@ sys.path.insert(0, '../..')
 
 import libs_agents
 from libs_common.Training import *
-from libs_common.atari_wrapper import *
+from libs_common.MontezumaWrapper import *
 from libs_common.MultiEnv import *
 
 import models.ppo_entropy.src.model_ppo             as ModelPPO
@@ -22,7 +22,7 @@ config  = Config.Config()
 envs    = []
 for e in range(config.actors):
     env = gym.make("MontezumaRevengeNoFrameskip-v4")
-    env = AtariWrapper(env)
+    env = MontezumaWrapper(env)
     envs.append(env)
 
 envs = MultiEnvParallel(envs)
