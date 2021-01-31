@@ -16,20 +16,20 @@ import models.ddpg_curiosity.model.src.model_forward      as ModelForward
 import models.ddpg_curiosity.model.src.model_forward_target      as ModelForwardTarget
 import models.ddpg_curiosity.model.src.config           as Config
 
-path = "models/ddpg_curiosity/run_0/"
+path = "models/ddpg_curiosity/model/"
 
-env = gym.make("TargetNavigate-v0", render = True)
+env = gym.make("TargetNavigate-v0", render = False)
 
 agent = libs_agents.AgentDDPGCuriosity(env, ModelCritic, ModelActor, ModelForward, ModelForwardTarget, Config)
 
-'''
 max_iterations = 1*(10**6)
 trainig = TrainingIterations(env, agent, max_iterations, path, 10000)
 trainig.run()
-'''
 
+'''
 agent.load(path)
 agent.disable_training()
 while True:
     reward, done = agent.main()
     time.sleep(0.01)
+'''

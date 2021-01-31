@@ -46,6 +46,8 @@ class AgentPPOCuriosity():
         for e in range(self.actors):
             self.states.append(self.envs[e].reset())
 
+        self._init_states_running_stats(numpy.array(self.states))
+
         self.enable_training()
         self.iterations = 0
 
@@ -74,6 +76,7 @@ class AgentPPOCuriosity():
 
         action_one_hot_t    = self._action_one_hot(numpy.array(actions))
 
+        self._update_states_running_stats(states_t)
         curiosity_t         = self._curiosity(states_t, action_one_hot_t)
         curiosity_np        = self.beta*numpy.tanh(curiosity_t.detach().to("cpu").numpy())
 
@@ -133,6 +136,8 @@ class AgentPPOCuriosity():
 
                 self.optimizer_ppo.zero_grad()        
                 loss.backward()
+                for param in self.model_ppo.parameters():
+                    param.grad.data.clamp_(-0.5, 0.5)
                 self.optimizer_ppo.step()
                 
                 #train forward model, MSE loss
@@ -200,10 +205,21 @@ class AgentPPOCuriosity():
         return action_one_hot_t
 
     def _curiosity(self, state_t, action_one_hot_t):
-        state_next_predicted_t       = self.model_forward(state_t, action_one_hot_t)
-        state_next_predicted_t_t     = self.model_forward_target(state_t, action_one_hot_t)
+        state_norm_t = state_t - self.states_running_mean_t
+        state_norm_t = state_norm_t.clip(-4.0, 4.0).detach()
+
+        state_next_predicted_t       = self.model_forward(state_norm_t, action_one_hot_t)
+        state_next_predicted_t_t     = self.model_forward_target(state_norm_t, action_one_hot_t)
 
         curiosity_t    = (state_next_predicted_t_t.detach() - state_next_predicted_t)**2
         curiosity_t    = curiosity_t.mean(dim=1)
 
         return curiosity_t
+
+    def _init_states_running_stats(self, initial_states):
+        initial_states_mean        = initial_states.mean(axis=0)
+        self.states_running_mean_t = torch.from_numpy(initial_states_mean).to(self.model_ppo.device)
+
+    def _update_states_running_stats(self, state_t, eps = 0.001):
+        mean_t = state_t.mean(dim = 0)
+        self.states_running_mean_t = (1.0 - eps)*self.states_running_mean_t + eps*mean_t

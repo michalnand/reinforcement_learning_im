@@ -10,7 +10,6 @@ class Model(torch.nn.Module):
         super(Model, self).__init__()
 
         self.device = "cpu"
-        #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.channels   = input_shape[0]
         self.width      = input_shape[1]
@@ -18,17 +17,16 @@ class Model(torch.nn.Module):
         fc_count        = kernels_count*self.width//4
 
         self.layers = [ 
-            nn.Conv1d(self.channels + outputs_count, kernels_count, kernel_size=8, stride=4, padding=2),
+            nn.Conv1d(self.channels, kernels_count, kernel_size=8, stride=4, padding=2),
             nn.ReLU(),
 
-            Flatten(),
+            nn.Flatten(),
 
             nn.Linear(fc_count, hidden_count),
             nn.ReLU(),            
             nn.Linear(hidden_count, hidden_count//2)           
         ] 
 
-       
         torch.nn.init.xavier_uniform_(self.layers[0].weight)
         torch.nn.init.xavier_uniform_(self.layers[3].weight)
         torch.nn.init.xavier_uniform_(self.layers[5].weight)
@@ -42,10 +40,7 @@ class Model(torch.nn.Module):
        
 
     def forward(self, state, action):
-        a_  = action.unsqueeze(2).repeat(1, 1, state.shape[2])
-        x   = torch.cat([state, a_], dim = 1) 
-      
-        return self.model(x)
+        return self.model(state)
 
     def save(self, path):
         print("saving to ", path)

@@ -6,16 +6,11 @@ sys.path.insert(0, '../../../../..')
 
 import libs_layers
 
-class Flatten(nn.Module):
-    def forward(self, input):
-        return input.view(input.size(0), -1)
-
 class Model(torch.nn.Module):
     def __init__(self, input_shape, outputs_count, kernels_count = 32, hidden_count = 256):
         super(Model, self).__init__()
 
         self.device = "cpu"
-        #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         self.channels   = input_shape[0]
         self.width      = input_shape[1]
@@ -26,7 +21,7 @@ class Model(torch.nn.Module):
             nn.Conv1d(self.channels, kernels_count, kernel_size=8, stride=4, padding=2),
             nn.ReLU(),
 
-            Flatten(),
+            nn.Flatten(),
 
             libs_layers.NoisyLinearFull(fc_count, hidden_count),
             nn.ReLU(),            

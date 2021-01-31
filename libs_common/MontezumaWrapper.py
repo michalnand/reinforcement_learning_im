@@ -48,12 +48,17 @@ class ResizeEnv(gym.ObservationWrapper):
 
         return self.state
 
-class MaxStepsEnv(gym.Wrapper):
+class RawScoreEnv(gym.Wrapper):
     def __init__(self, env, max_steps):
         gym.Wrapper.__init__(self, env)
 
         self.steps      = 0
         self.max_steps  = max_steps
+
+        self.raw_episodes            = 0
+        self.raw_score               = 0.0
+        self.raw_score_per_episode   = 0.0
+        self.raw_score_total         = 0.0  
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
@@ -63,64 +68,28 @@ class MaxStepsEnv(gym.Wrapper):
             self.steps = 0
             done = True
 
-        return obs, reward, done, info
-
-    def reset(self):
-        return self.env.reset()
-        
-
-class EpisodicLifeEnv(gym.Wrapper):
-    def __init__(self, env):
-        gym.Wrapper.__init__(self, env)
-        self.lives = 0
-        self.was_real_done  = True
-
-        self.raw_episodes            = 0
-        self.raw_score               = 0.0
-        self.raw_score_per_episode   = 0.0
-        self.raw_score_total         = 0.0  
-
-    def step(self, action):
-        obs, reward, done, info = self.env.step(action)
-        self.was_real_done = done
-        
-        lives = self.env.unwrapped.ale.lives()
-        if lives < self.lives and lives > 0:
-            done    = True
-            reward  = -1.0
-        if lives == 0 and self.inital_lives > 0:
-            reward = -1.0
-
         self.raw_score+= reward
         self.raw_score_total+= reward
- 
-        if self.was_real_done:
+        if done:
+            self.steps = 0
             self.raw_episodes+= 1
 
             k = 0.1
             self.raw_score_per_episode   = (1.0 - k)*self.raw_score_per_episode + k*self.raw_score            
             self.raw_score = 0.0
 
-        self.lives = lives
         return obs, reward, done, info
 
-    def reset(self, **kwargs):
-        if self.was_real_done:
-            obs = self.env.reset(**kwargs)
-        else:
-            obs, _, _, _ = self.env.step(0) 
+    def reset(self):
+        self.steps = 0
+        return self.env.reset()
 
-        self.lives = self.env.unwrapped.ale.lives()
-        self.inital_lives = self.env.unwrapped.ale.lives()
-        return obs
 
 
 def MontezumaWrapper(env, height = 96, width = 96, frame_stacking=4, frame_skipping=4, max_steps = 4500):
     env = MaxAndSkipEnv(env, frame_skipping)
     env = ResizeEnv(env, height, width, frame_stacking)
-    env = MaxStepsEnv(env, max_steps)
-    env = EpisodicLifeEnv(env)
-
+    env = RawScoreEnv(env, max_steps)
     env.observation_space.shape = (frame_stacking, height, width)
 
     return env

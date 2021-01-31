@@ -1,6 +1,6 @@
 class Config(): 
     def __init__(self):
-        self.gamma                  = 0.99
+        self.gamma                  = 0.995
         self.entropy_beta           = 0.001
         self.eps_clip               = 0.2
 
@@ -10,4 +10,4 @@ class Config():
         self.training_epochs        = 4
         self.actors                 = 128
         
-        self.learning_rate          = 0.00025
+        self.learning_rate          = 0.0001
