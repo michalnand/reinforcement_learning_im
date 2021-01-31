@@ -23,6 +23,9 @@ class MaxAndSkipEnv(gym.Wrapper):
         max_frame = self._obs_buffer.max(axis=0)
         return max_frame, total_reward, done, info
 
+    def reset(self):
+        return self.env.reset()
+
 
 class ResizeEnv(gym.ObservationWrapper):
     def __init__(self, env, height = 96, width = 96, frame_stacking = 4):

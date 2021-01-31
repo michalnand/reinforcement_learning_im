@@ -24,9 +24,9 @@ class TrainingIterations:
         if isinstance(self.env, list):
             env = self.env[0]
         elif isinstance(self.env, MultiEnvSeq):
-            env = self.env[0]
+            env = self.env.get(0)
         elif isinstance(self.env, MultiEnvParallel):
-            env = self.env[0]
+            env = self.env.get(0)
         else:
             env = self.env
 
@@ -44,19 +44,33 @@ class TrainingIterations:
             time_start      = time.time()
             reward, done    = self.agent.main()
             time_stop       = time.time()
-            
-            raw_episodes            = 0 
-            raw_score_per_episode   = 0
-            raw_score_total         = 0
 
+
+            if isinstance(self.env, list):
+                env = self.env[0]
+            elif isinstance(self.env, MultiEnvSeq):
+                env = self.env.get(0)
+            elif isinstance(self.env, MultiEnvParallel):
+                env = self.env.get(0)
+            else:
+                env = self.env
+
+            
             if hasattr(env, "raw_episodes"):
                 raw_episodes = env.raw_episodes
+            else:
+                raw_episodes            = 0 
 
             if hasattr(env, "raw_score_total"):
                 raw_score_total = env.raw_score_total
-         
+            else:
+                raw_score_total         = 0
+                
             if hasattr(env, "raw_score_per_episode"):
                 raw_score_per_episode = env.raw_score_per_episode
+            else:
+                raw_score_per_episode   = 0
+
 
             log_agent = "" 
             if hasattr(self.agent, "get_log"):

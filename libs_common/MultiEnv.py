@@ -5,177 +5,197 @@ import numpy
 import gym
 
 class MultiEnvSeq:
-	def __init__(self, envs):
-		self.envs	= envs
-		
-		self.obs 	= []
-		self.reward = []
-		self.done   = []
-		self.info   = []
+	def __init__(self, env_name, wrapper, envs_count):
 
-		for i in range(len(self.envs)):
-			self.obs.append([])
-			self.reward.append([])
-			self.done.append([])
-			self.info.append([])
+		dummy_env 	= gym.make(env_name)
+		dummy_env 	= wrapper(dummy_env)
+
+		self.observation_space 	= dummy_env.observation_space
+		self.action_space 		= dummy_env.action_space
+
+		self.envs	= []
+
+		for i in range(envs_count):
+			env 	= gym.make(env_name)
+			env 	= wrapper(env)
+			self.envs.append(env)
 
 	def close(self):
 		pass
 
+	def reset(self, env_id):
+		return self.envs[env_id].reset()
+
 	def step(self, actions):
+		obs 	= []
+		reward 	= []
+		done 	= []
+		info 	= []
+
 		for e in range(len(self.envs)):
-			obs, reward, done, info = self.envs[e].step(actions[e])
+			_obs, _reward, _done, _info = self.envs[e].step(actions[e])
 
-			self.obs[e]		= obs
-			self.reward[e]	= reward 
-			self.done[e]	= done
-			self.info[e]	= info
+			obs.append(_obs)
+			reward.append(_reward)
+			done.append(_done)
+			info.append(_info)
 			
-		return self.obs, self.reward, self.done, self.info
+		return obs, reward, done, info
 
-	def render(self):
+	def render(self, env_id):
 		for i in range(len(self.envs)):
 			self.envs[i].render()
+	
+	def get(self, env_id):
+		return self.envs[0]
 
-	def __getitem__(self, idx):
-		return self.envs[idx]
 
 
+def env_process_main(id, inq, outq, env_name, wrapper):
+
+	print("env_process_main = ", id, env_name)
+
+	env 	= gym.make(env_name)
+	env  	= wrapper(env)
+	
+	obs 	= env.reset()
+	reward 	= 0.0
+	done 	= False
+	info 	= None
+
+	while True:
+		val = inq.get()
+		
+		if val[0] == "end":
+			break
+		elif val[0] == "reset":
+			obs 	= env.reset()
+			reward 	= 0.0
+			done 	= False
+			info 	= None
+			outq.put((obs, reward, done, info))
+
+		elif val[0] == "step":
+			action = val[1]
+			obs, reward, done, info = env.step(action)
+			outq.put((obs, reward, done, info))
+
+		elif val[0] == "render":
+			env.render()
+			outq.put((obs, reward, done, info))
+
+		elif val[0] == "get":
+			outq.put(env)
+	
 
 class MultiEnvParallel:
-	def __init__(self, envs):
-		self.envs 		= envs
-		self.running 	= True
+	def __init__(self, env_name, wrapper, envs_count):
 
-		threads_count_max 		= multiprocessing.cpu_count()
-		threads_count_optimal   = max(len(self.envs)//16, 1)
+		dummy_env 	= gym.make(env_name)
+		dummy_env	= wrapper(dummy_env)
 
-		threads_count 			= min(threads_count_optimal, threads_count_max)
+		self.observation_space 	= dummy_env.observation_space
+		self.action_space 		= dummy_env.action_space
 
 
-		print("MultiEnv ")
-		print("trheads_count = ", threads_count)
-		print("envs_count 	 = ", len(self.envs))
-		print("\n\n")
+		self.inq		= []
+		self.outq 		= []
+		self.workers 	= []
 
-		self.obs 	= []
-		self.reward = []
-		self.done   = []
-		self.info   = []
 
-		for i in range(len(self.envs)):
-			self.obs.append([])
-			self.reward.append([])
-			self.done.append([])
-			self.info.append([])
+		for i in range(envs_count):
+			inq	 =	multiprocessing.Queue()
+			outq =	multiprocessing.Queue()
 
-		envs_idx = []
+			worker = multiprocessing.Process(target=env_process_main, args=(i, inq, outq, env_name, wrapper))
+			
+			self.inq.append(inq)
+			self.outq.append(outq)
+			self.workers.append(worker) 
 
-		for i in range(threads_count):	
-			envs_idx.append([])
+		for i in range(envs_count):
+			self.workers[i].start()
 
-		for i in range(len(self.envs)):
-			envs_idx[i%threads_count].append(i)
-
-		self.threads 	= []
-
-		self.mutexes_in 	= []
-		self.mutexes_out 	= []
-
-		for i in range(threads_count):			
-			th = threading.Thread(target=self._thread_main, args=(i, envs_idx[i]))
-			self.threads.append(th) 
-			self.mutexes_in.append(threading.Lock())
-			self.mutexes_out.append(threading.Lock())
-
-		for i in range(threads_count):
-			self.mutexes_in[i].acquire()
-
-		for i in range(len(self.mutexes_out)):
-			self.mutexes_out[i].acquire()
-
-		for i in range(threads_count):
-			self.threads[i].start()
+	
 
 	def close(self):
-		self.running = False
+		for i in range(len(self.workers)):
+			self.inq[i].put(["end"])
+		
+		for i in range(len(self.workers)):
+			self.workers[i].join()
 
-		for i in range(len(self.mutexes_in)):
-			self.mutexes_in[i].release()
+	def reset(self, env_id):
+		self.inq[env_id].put(["reset"])
 
-		for i in range(len(self.threads)):
-			self.threads[i].join()
+		obs, reward, done, info = self.outq[env_id].get()
+		return obs 
+
+	def render(self, env_id):
+		self.inq[env_id].put(["render"])
+
+		obs, reward, done, info = self.outq[env_id].get()
 
 	def step(self, actions):
-		self.actions = actions.copy()
+		for i in range(len(self.workers)):
+			self.inq[i].put(["step", actions[i]])
 
-		for i in range(len(self.mutexes_in)):
-			self.mutexes_in[i].release()
+		obs 	= []
+		reward 	= []
+		done   	= []
+		info   	= []
 
-		for i in range(len(self.mutexes_out)):
-			self.mutexes_out[i].acquire()
+		for i in range(len(self.workers)):
+			_obs, _reward, _done, _info = self.outq[i].get()
+			obs.append(_obs)
+			reward.append(_reward)
+			done.append(_done)
+			info.append(_info)
 
-		return self.obs, self.reward, self.done, self.info
+		return obs, reward, done, info
 
-	def render(self):
-		for i in range(len(self.envs)):
-			self.envs[i].render()
+	def get(self, env_id):
+		self.inq[env_id].put(["get"])
 
-	def __getitem__(self, idx):
-		return self.envs[idx]
+		return self.outq[env_id].get()
 
-	def _thread_main(self, id, envs_idx):
-		while self.running == True:
-			self.mutexes_in[id].acquire()
-
-			for i in range(len(envs_idx)):
-				env_idx = envs_idx[i]
-				obs, reward, done, info = self.envs[env_idx].step(self.actions[env_idx])
-
-				self.obs[env_idx] 		= obs
-				self.reward[env_idx] 	= reward
-				self.done[env_idx] 		= done
-				self.info[env_idx] 		= info
-
-			self.mutexes_out[id].release()
 
 
 
 			
 if __name__ == "__main__":
 
-	envs = []
-
 	n_envs = 128
 
-	for i in range(n_envs):
-		env = gym.make("MontezumaRevengeNoFrameskip-v4")
-		env.reset()
-		envs.append(env)
-
-	#multi_envs = MultiEnvSeq(envs)
-	multi_envs = MultiEnvParallel(envs)
-
-	obs_shape = multi_envs[0].observation_space.shape
-	n_actions = multi_envs[0].action_space.n
-
+	#multi_envs = MultiEnvSeq("MontezumaRevengeNoFrameskip-v4", MontezumaWrapper, envs_count = n_envs)
+	multi_envs = MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", MontezumaWrapper, envs_count = n_envs)
+	
+	obs_shape = multi_envs.observation_space.shape
+	n_actions = multi_envs.action_space.n
 
 	print("INFO = ", obs_shape, n_actions)
-	
-	k = 0.02
-	fps = 0
-	steps = 0
+
+	for i in range(n_envs):
+		multi_envs.reset(i) 
+
+	k 		= 0.02
+	fps 	= 0
+	steps 	= 0
+
+	time_stop = 10
+	time_start = 1
 	while True:
-		
+
 		actions = numpy.random.randint(n_actions, size=n_envs)
 
 		time_start = time.time()
-		obs, reward, done, info = multi_envs.step(actions)
+		obs, rewards, dones, info = multi_envs.step(actions)
 		time_stop  = time.time()
 
-		for j in range(len(done)):
-			if done[j]:
-				multi_envs[j].reset() 
+		for i in range(len(dones)):
+			if dones[i]:
+				multi_envs.reset(i) 
+
 
 		fps = (1.0 - k)*fps + k*1.0/(time_stop - time_start)
 
@@ -184,6 +204,9 @@ if __name__ == "__main__":
 
 		steps+= 1
 		
-		#multi_envs.render()
+		'''
+		for i in range(n_envs):
+			multi_envs.render(i)
+		'''
 
 	multi_envs.close()

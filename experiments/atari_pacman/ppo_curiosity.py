@@ -18,26 +18,22 @@ import models.ppo_curiosity.src.config                  as Config
 path = "models/ppo_curiosity/"
 
 config  = Config.Config()
-envs    = []
-for e in range(config.actors):
-    env = gym.make("MsPacmanNoFrameskip-v4")
-    env = AtariWrapper(env)
-    envs.append(env)
 
-envs = MultiEnvSeq(envs)
+envs = MultiEnvSeq("MsPacmanNoFrameskip-v4", AtariWrapper, config.actors)
 
 agent = libs_agents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForwardTarget, Config)
 
 max_iterations = 1*(10**6) 
 
-#trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
-#trainig.run() 
+trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
+trainig.run() 
 
-
+'''
 agent.load(path)
 agent.disable_training()
 while True:
     reward, done = agent.main()
 
-    envs[0].render()
+    envs.render(0)
     time.sleep(0.01)
+'''

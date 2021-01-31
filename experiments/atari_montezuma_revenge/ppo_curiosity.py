@@ -18,13 +18,8 @@ import models.ppo_curiosity.src.config                  as Config
 path = "models/ppo_curiosity/"
 
 config  = Config.Config()
-envs    = []
-for e in range(config.actors):
-    env = gym.make("MontezumaRevengeNoFrameskip-v4")
-    env = MontezumaWrapper(env)
-    envs.append(env)
 
-envs = MultiEnvParallel(envs)
+envs = MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", MontezumaWrapper, config.actors)
 
 agent = libs_agents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForwardTarget, Config)
 

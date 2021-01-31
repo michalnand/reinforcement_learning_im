@@ -29,8 +29,8 @@ class AgentPPOCuriosity():
 
         self.beta               = config.beta
 
-        self.state_shape    = self.envs[0].observation_space.shape
-        self.actions_count  = self.envs[0].action_space.n
+        self.state_shape    = self.envs.observation_space.shape
+        self.actions_count  = self.envs.action_space.n
 
         self.model_ppo          = ModelPPO.Model(self.state_shape, self.actions_count)
         self.optimizer_ppo      = torch.optim.Adam(self.model_ppo.parameters(), lr=config.learning_rate_ppo)
@@ -44,7 +44,7 @@ class AgentPPOCuriosity():
 
         self.states = []
         for e in range(self.actors):
-            self.states.append(self.envs[e].reset())
+            self.states.append(self.envs.reset(e))
 
         self._init_states_running_stats(numpy.array(self.states))
 
@@ -90,7 +90,7 @@ class AgentPPOCuriosity():
                     self.train()
 
             if dones[e]:
-                self.states[e] = self.envs[e].reset()
+                self.states[e] = self.envs.reset(e)
             else:
                 self.states[e] = states[e].copy()
 
@@ -206,7 +206,6 @@ class AgentPPOCuriosity():
 
     def _curiosity(self, state_t, action_one_hot_t):
         state_norm_t = state_t - self.states_running_mean_t
-        state_norm_t = state_norm_t.clip(-4.0, 4.0).detach()
 
         state_next_predicted_t       = self.model_forward(state_norm_t, action_one_hot_t)
         state_next_predicted_t_t     = self.model_forward_target(state_norm_t, action_one_hot_t)
