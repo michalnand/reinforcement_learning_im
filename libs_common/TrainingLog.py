@@ -3,7 +3,7 @@ import time
 
 class TrainingLog:
 
-    def __init__(self, file_name, episode_skip_log = 10, iterations_skip_mode = False):
+    def __init__(self, file_name, iteartions_skip_log = 10):
 
         self.iterations         = 0
         self.episodes           = 0
@@ -23,8 +23,7 @@ class TrainingLog:
 
         self.is_best = False
 
-        self.episode_skip_log   = episode_skip_log
-        self.iterations_skip_mode = iterations_skip_mode
+        self.iteartions_skip_log   = iteartions_skip_log
 
         self.file_name = file_name
 
@@ -32,13 +31,19 @@ class TrainingLog:
             f = open(self.file_name,"w+")
             f.close()
 
+    def requires_full_data(self):
+        if self.iterations%self.iteartions_skip_log == 0:
+            return True
+        else:
+            return False
+
     def add(self, reward, done, raw_episodes = 0, raw_score_total = 0, raw_score_per_episode = 0, extra_stats=""):
 
         self.total_score+= reward
         self.episode_score_sum+= reward
         self.episode_iterations+= 1
 
-        self.iterations+= 1
+        
 
         self.is_best = False
 
@@ -62,12 +67,7 @@ class TrainingLog:
             self.episode_score_sum = 0
             self.episode_iterations = 0
         
-        if self.iterations_skip_mode:
-            tmp = self.iterations
-        else:
-            tmp = self.episodes
-
-        if tmp%self.episode_skip_log == 0:
+        if self.iterations%self.iteartions_skip_log == 0:
             dp = 3
             log_str = ""
             log_str+= str(self.iterations) + " "
@@ -86,6 +86,8 @@ class TrainingLog:
             f = open(self.file_name,"a+")
             f.write(log_str+"\n")
             f.close()
+
+        self.iterations+= 1
 
 
 

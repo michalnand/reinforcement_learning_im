@@ -19,8 +19,8 @@ path = "models/ppo_curiosity/"
 
 config  = Config.Config()
 
-envs = MultiEnvSeq("MsPacmanNoFrameskip-v4", AtariWrapper, config.actors)
-
+envs = MultiEnvParallel("MsPacmanNoFrameskip-v4", AtariWrapper, config.actors)
+ 
 agent = libs_agents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForwardTarget, Config)
 
 max_iterations = 1*(10**6) 

@@ -16,19 +16,10 @@ class TrainingIterations:
         self.saving_period_iterations = saving_period_iterations
 
     def run(self):
-        log = TrainingLog(self.saving_path + "result/result.log", self.saving_period_iterations, True)
+        log = TrainingLog(self.saving_path + "result/result.log", self.saving_period_iterations)
         new_best = False
 
-        fps        = 0.0
-
-        if isinstance(self.env, list):
-            env = self.env[0]
-        elif isinstance(self.env, MultiEnvSeq):
-            env = self.env.get(0)
-        elif isinstance(self.env, MultiEnvParallel):
-            env = self.env.get(0)
-        else:
-            env = self.env
+        
 
         raw_score_per_episode_best      = 0.0
 
@@ -37,6 +28,7 @@ class TrainingIterations:
         else:
             averaging_episodes = 100
 
+        fps        = 0.0
         score_per_episode_buffer = numpy.zeros(averaging_episodes)
 
         for iteration in range(self.iterations_count):
@@ -45,32 +37,29 @@ class TrainingIterations:
             reward, done    = self.agent.main()
             time_stop       = time.time()
 
+            raw_episodes            = 0 
+            raw_score_total         = 0
+            raw_score_per_episode   = 0
+ 
+            if log.requires_full_data():
+                if isinstance(self.env, list):
+                    env = self.env[0]
+                elif isinstance(self.env, MultiEnvSeq):
+                    env = self.env.get(0)
+                elif isinstance(self.env, MultiEnvParallel):
+                    env = self.env.get(0)
+                else:
+                    env = self.env
 
-            if isinstance(self.env, list):
-                env = self.env[0]
-            elif isinstance(self.env, MultiEnvSeq):
-                env = self.env.get(0)
-            elif isinstance(self.env, MultiEnvParallel):
-                env = self.env.get(0)
-            else:
-                env = self.env
-
-            
-            if hasattr(env, "raw_episodes"):
-                raw_episodes = env.raw_episodes
-            else:
-                raw_episodes            = 0 
-
-            if hasattr(env, "raw_score_total"):
-                raw_score_total = env.raw_score_total
-            else:
-                raw_score_total         = 0
+                if hasattr(env, "raw_episodes"):
+                    raw_episodes = env.raw_episodes
                 
-            if hasattr(env, "raw_score_per_episode"):
-                raw_score_per_episode = env.raw_score_per_episode
-            else:
-                raw_score_per_episode   = 0
-
+                if hasattr(env, "raw_score_total"):
+                    raw_score_total = env.raw_score_total
+            
+                if hasattr(env, "raw_score_per_episode"):
+                    raw_score_per_episode = env.raw_score_per_episode
+          
 
             log_agent = "" 
             if hasattr(self.agent, "get_log"):
