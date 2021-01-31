@@ -18,14 +18,7 @@ import models.ppo_entropy.src.config                as Config
 
 path = "models/ppo_entropy/"
 
-config  = Config.Config()
-envs    = []
-for e in range(config.actors):
-    env = gym.make("MsPacmanNoFrameskip-v4")
-    env = AtariWrapper(env)
-    envs.append(env)
-
-envs = MultiEnvSeq(envs)
+envs = MultiEnvSeq("MsPacmanNoFrameskip-v4", AtariWrapper, config.actors)
 
 agent = libs_agents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
 
@@ -40,6 +33,6 @@ agent.disable_training()
 while True:
     reward, done = agent.main()
 
-    envs[0].render()
+    envs.render(0)
     time.sleep(0.01)
 '''

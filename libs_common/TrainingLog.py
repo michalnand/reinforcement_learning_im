@@ -31,12 +31,6 @@ class TrainingLog:
             f = open(self.file_name,"w+")
             f.close()
 
-    def requires_full_data(self):
-        if self.iterations%self.iteartions_skip_log == 0:
-            return True
-        else:
-            return False
-
     def add(self, reward, done, raw_episodes = 0, raw_score_total = 0, raw_score_per_episode = 0, extra_stats=""):
 
         self.total_score+= reward

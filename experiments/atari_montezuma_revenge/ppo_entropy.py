@@ -19,17 +19,12 @@ import models.ppo_entropy.src.config                as Config
 path = "models/ppo_entropy/"
 
 config  = Config.Config()
-envs    = []
-for e in range(config.actors):
-    env = gym.make("MontezumaRevengeNoFrameskip-v4")
-    env = MontezumaWrapper(env)
-    envs.append(env)
 
-envs = MultiEnvParallel(envs)
+envs = MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", MontezumaWrapper, config.actors)
 
 agent = libs_agents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
 
-max_iterations = 250000
+max_iterations = config.actors*30000
 
 trainig = TrainingIterations(envs, agent, max_iterations, path, 100)
 trainig.run() 
@@ -40,6 +35,6 @@ agent.disable_training()
 while True:
     reward, done = agent.main()
 
-    envs[0].render()
+    envs.render(0)
     time.sleep(0.01)
 '''

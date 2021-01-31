@@ -34,6 +34,6 @@ agent.disable_training()
 while True:
     reward, done = agent.main()
 
-    envs[0].render()
+    envs.render(0)
     time.sleep(0.01)
 '''

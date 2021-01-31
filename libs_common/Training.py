@@ -19,8 +19,7 @@ class TrainingIterations:
         log = TrainingLog(self.saving_path + "result/result.log", self.saving_period_iterations)
         new_best = False
 
-        
-
+    
         raw_score_per_episode_best      = 0.0
 
         if self.iterations_count < 1000000:
@@ -41,24 +40,23 @@ class TrainingIterations:
             raw_score_total         = 0
             raw_score_per_episode   = 0
  
-            if log.requires_full_data():
-                if isinstance(self.env, list):
-                    env = self.env[0]
-                elif isinstance(self.env, MultiEnvSeq):
-                    env = self.env.get(0)
-                elif isinstance(self.env, MultiEnvParallel):
-                    env = self.env.get(0)
-                else:
-                    env = self.env
+            if isinstance(self.env, list):
+                env = self.env[0]
+            elif isinstance(self.env, MultiEnvSeq):
+                env = self.env.get(0)
+            elif isinstance(self.env, MultiEnvParallel):
+                env = self.env.get(0)
+            else:
+                env = self.env
 
-                if hasattr(env, "raw_episodes"):
-                    raw_episodes = env.raw_episodes
-                
-                if hasattr(env, "raw_score_total"):
-                    raw_score_total = env.raw_score_total
+            if hasattr(env, "raw_episodes"):
+                raw_episodes = env.raw_episodes
             
-                if hasattr(env, "raw_score_per_episode"):
-                    raw_score_per_episode = env.raw_score_per_episode
+            if hasattr(env, "raw_score_total"):
+                raw_score_total = env.raw_score_total
+        
+            if hasattr(env, "raw_score_per_episode"):
+                raw_score_per_episode = env.raw_score_per_episode
           
 
             log_agent = "" 

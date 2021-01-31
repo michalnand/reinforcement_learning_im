@@ -16,17 +16,12 @@ import models.ppo_baseline.src.config           as Config
 path = "models/ppo_baseline/"
 
 config  = Config.Config()
-envs    = []
-for e in range(config.actors):
-    env = gym.make("MontezumaRevengeNoFrameskip-v4")
-    env = MontezumaWrapper(env)
-    envs.append(env)
 
-envs = MultiEnvParallel(envs)
+envs = MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", MontezumaWrapper, config.actors)
 
 agent = libs_agents.AgentPPO(envs, Model, Config)
 
-max_iterations = 250000
+max_iterations = config.actors*30000
 
 trainig = TrainingIterations(envs, agent, max_iterations, path, 100)
 trainig.run() 
