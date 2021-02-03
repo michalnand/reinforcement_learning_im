@@ -47,49 +47,62 @@ class MultiEnvSeq:
 			self.envs[i].render()
 	
 	def get(self, env_id):
-		return self.envs[0]
+		return self.envs[env_id]
 
 
 
-def env_process_main(id, inq, outq, env_name, wrapper):
+def env_process_main(id, inq, outq, env_name, wrapper, count):
 
-	print("env_process_main = ", id, env_name)
+	print("env_process_main = ", id, count, env_name)
+	envs 	= []
 
-	env 	= gym.make(env_name)
-	env  	= wrapper(env)
+	for _ in range(count):
+		env 	= gym.make(env_name)
+		env  	= wrapper(env)
+		envs.append(env)
 	
-	obs 	= env.reset()
-	reward 	= 0.0
-	done 	= False
-	info 	= None
-
 	while True:
 		val = inq.get()
 		
 		if val[0] == "end":
 			break
+
 		elif val[0] == "reset":
-			obs 	= env.reset()
-			reward 	= 0.0
-			done 	= False
-			info 	= None
-			outq.put((obs, reward, done, info))
+			env_id 	= val[1]
+
+			_obs 	= envs[env_id].reset()
+			
+			outq.put(_obs)
 
 		elif val[0] == "step":
-			action = val[1]
-			obs, reward, done, info = env.step(action)
-			outq.put((obs, reward, done, info))
+			actions = val[1]
+
+			obs 	= []
+			rewards = []
+			dones 	= []
+			infos 	= []
+
+			for i in range(count):
+				_obs, _reward, _done, _info = envs[i].step(actions[i])
+
+				obs.append(_obs)
+				rewards.append(_reward)
+				dones.append(_done)
+				infos.append(_info)
+
+			outq.put((obs, rewards, dones, infos))
 
 		elif val[0] == "render":
-			env.render()
-			outq.put((obs, reward, done, info))
+			env_id = val[1]
+			envs[env_id].render()
 
 		elif val[0] == "get":
-			outq.put(env)
+			env_id = val[1]
+			outq.put(envs[env_id])
 	
 
 class MultiEnvParallel:
-	def __init__(self, env_name, wrapper, envs_count):
+	def __init__(self, env_name, wrapper, envs_count, envs_per_thread = 8):
 
 		dummy_env 	= gym.make(env_name)
 		dummy_env	= wrapper(dummy_env)
@@ -102,18 +115,27 @@ class MultiEnvParallel:
 		self.outq 		= []
 		self.workers 	= []
 
+		self.envs_count			= envs_count
+		self.threads_count 		= envs_count//envs_per_thread
+		self.envs_per_thread	= envs_per_thread
 
-		for i in range(envs_count):
+		print("MultiEnvParallel")
+		print("envs_count      = ", self.envs_count)
+		print("threads_count   = ", self.threads_count)
+		print("envs_per_thread = ", self.envs_per_thread)
+		print("\n\n")
+
+		for i in range(self.threads_count):
 			inq	 =	multiprocessing.Queue()
 			outq =	multiprocessing.Queue()
 
-			worker = multiprocessing.Process(target=env_process_main, args=(i, inq, outq, env_name, wrapper))
+			worker = multiprocessing.Process(target=env_process_main, args=(i, inq, outq, env_name, wrapper, envs_per_thread))
 			
 			self.inq.append(inq)
 			self.outq.append(outq)
 			self.workers.append(worker) 
 
-		for i in range(envs_count):
+		for i in range(self.threads_count):
 			self.workers[i].start()
 
 	
@@ -126,52 +148,69 @@ class MultiEnvParallel:
 			self.workers[i].join()
 
 	def reset(self, env_id):
-		self.inq[env_id].put(["reset"])
+		thread, id = self._position(env_id)
 
-		obs, reward, done, info = self.outq[env_id].get()
+		self.inq[thread].put(["reset", id])
+
+		obs = self.outq[thread].get()
 		return obs 
 
 	def render(self, env_id):
-		self.inq[env_id].put(["render"])
+		thread, id = self._position(env_id)
 
-		obs, reward, done, info = self.outq[env_id].get()
+		self.inq[thread].put(["render", id])
+
 
 	def step(self, actions):
-		for i in range(len(self.workers)):
-			self.inq[i].put(["step", actions[i]])
+		for j in range(self.threads_count):
+			_actions = []
+			for i in range(self.envs_per_thread):
+				_actions.append(actions[j*self.envs_per_thread + i])
+
+			self.inq[j].put(["step", _actions])
 
 		obs 	= []
 		reward 	= []
 		done   	= []
 		info   	= []
 
-		for i in range(len(self.workers)):
-			_obs, _reward, _done, _info = self.outq[i].get()
-			obs.append(_obs)
-			reward.append(_reward)
-			done.append(_done)
-			info.append(_info)
+		for j in range(self.threads_count):
+			_obs, _reward, _done, _info = self.outq[j].get()
+
+			for i in range(self.envs_per_thread):
+				obs.append(_obs[i])
+				reward.append(_reward[i])
+				done.append(_done[i])
+				info.append(_info[i])
 
 		return obs, reward, done, info
 
 	def get(self, env_id):
-		self.inq[env_id].put(["get"])
+		thread, id = self._position(env_id)
 
-		return self.outq[env_id].get()
+		self.inq[thread].put(["get", id])
+
+		return self.outq[thread].get()
+
+	def _position(self, env_id):
+		return env_id//self.envs_per_thread, env_id%self.envs_per_thread
 
 
 
-
+#from MontezumaWrapper import *
 			
 if __name__ == "__main__":
 
-	n_envs = 128
+	n_envs = 12
 
-	#multi_envs = MultiEnvSeq("MontezumaRevengeNoFrameskip-v4", MontezumaWrapper, envs_count = n_envs)
-	multi_envs = MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", MontezumaWrapper, envs_count = n_envs)
+	multi_envs = MultiEnvSeq("MontezumaRevengeNoFrameskip-v4", MontezumaWrapper, envs_count = n_envs)
+	#multi_envs = MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", MontezumaWrapper, envs_count = n_envs, envs_per_thread=4)
 	
 	obs_shape = multi_envs.observation_space.shape
 	n_actions = multi_envs.action_space.n
+
+	for i in range(n_envs):
+		multi_envs.reset(i) 
 
 	print("INFO = ", obs_shape, n_actions)
 
@@ -196,8 +235,7 @@ if __name__ == "__main__":
 			if dones[i]:
 				multi_envs.reset(i) 
 
-
-		fps = (1.0 - k)*fps + k*1.0/(time_stop - time_start)
+		fps = (1.0 - k)*fps + k*1.0/(time_stop - time_start + 0.000001)
 
 		if steps%100 == 0:	
 			print("FPS = ", fps, fps*n_envs)

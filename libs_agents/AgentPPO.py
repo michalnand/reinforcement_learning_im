@@ -22,8 +22,8 @@ class AgentPPO():
         self.training_epochs    = config.training_epochs
         self.actors             = config.actors
 
-        self.state_shape    = self.envs[0].observation_space.shape
-        self.actions_count  = self.envs[0].action_space.n
+        self.state_shape    = self.envs.observation_space.shape
+        self.actions_count  = self.envs.action_space.n
 
         self.model          = Model.Model(self.state_shape, self.actions_count)
         self.optimizer      = torch.optim.Adam(self.model.parameters(), lr=config.learning_rate)
@@ -32,7 +32,7 @@ class AgentPPO():
 
         self.states = []
         for e in range(self.actors):
-            self.states.append(self.envs[e].reset())
+            self.states.append(self.envs.reset(e))
 
         self.enable_training()
         self.iterations = 0
@@ -67,7 +67,7 @@ class AgentPPO():
                     self.train()
                     
             if dones[e]:
-                self.states[e] = self.envs[e].reset()
+                self.states[e] = self.envs.reset(e)
             else:
                 self.states[e] = states[e].copy()
 

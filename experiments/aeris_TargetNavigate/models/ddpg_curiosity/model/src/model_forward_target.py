@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class Model(torch.nn.Module):
-    def __init__(self, input_shape, outputs_count, kernels_count = 32, hidden_count = 256):
+    def __init__(self, input_shape, outputs_count, kernels_count = 32, hidden_count = 128):
         super(Model, self).__init__()
 
         self.device = "cpu"
@@ -10,22 +10,27 @@ class Model(torch.nn.Module):
         self.channels   = input_shape[0]
         self.width      = input_shape[1]
 
-        fc_count        = kernels_count*self.width//4
+        fc_count        = kernels_count*self.width//8 
 
         self.layers = [ 
-            nn.Conv1d(self.channels, kernels_count, kernel_size=8, stride=4, padding=2),
+            nn.Conv1d(self.channels, kernels_count, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+
+            nn.Conv1d(kernels_count, kernels_count, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+
+            nn.Conv1d(kernels_count, kernels_count, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
 
             nn.Flatten(),
 
-            nn.Linear(fc_count, hidden_count),
-            nn.ReLU(),            
-            nn.Linear(hidden_count, hidden_count//2)  
+            nn.Linear(fc_count, hidden_count)
         ] 
 
-        torch.nn.init.xavier_uniform_(self.layers[0].weight)
-        torch.nn.init.xavier_uniform_(self.layers[3].weight)
-        torch.nn.init.xavier_uniform_(self.layers[5].weight)
+        torch.nn.init.orthogonal_(self.layers[0].weight, 2**0.5)
+        torch.nn.init.orthogonal_(self.layers[2].weight, 2**0.5)
+        torch.nn.init.orthogonal_(self.layers[4].weight, 2**0.5)
+        torch.nn.init.orthogonal_(self.layers[7].weight, 2**0.5)
  
         self.model = nn.Sequential(*self.layers) 
         self.model.to(self.device)

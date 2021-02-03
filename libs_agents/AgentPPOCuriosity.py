@@ -73,7 +73,6 @@ class AgentPPOCuriosity():
         for e in range(self.actors):
             actions.append(self._sample_action(logits_t[e]))
         
-
         action_one_hot_t    = self._action_one_hot(numpy.array(actions))
 
         self._update_states_running_stats(states_t)
@@ -136,8 +135,6 @@ class AgentPPOCuriosity():
 
                 self.optimizer_ppo.zero_grad()        
                 loss.backward()
-                for param in self.model_ppo.parameters():
-                    param.grad.data.clamp_(-0.5, 0.5)
                 self.optimizer_ppo.step()
                 
                 #train forward model, MSE loss
@@ -207,10 +204,10 @@ class AgentPPOCuriosity():
     def _curiosity(self, state_t, action_one_hot_t):
         state_norm_t = state_t - self.states_running_mean_t
 
-        state_next_predicted_t       = self.model_forward(state_norm_t, action_one_hot_t)
-        state_next_predicted_t_t     = self.model_forward_target(state_norm_t, action_one_hot_t)
+        features_predicted_t    = self.model_forward(state_norm_t, action_one_hot_t)
+        features_target_t       = self.model_forward_target(state_norm_t, action_one_hot_t)
 
-        curiosity_t    = (state_next_predicted_t_t.detach() - state_next_predicted_t)**2
+        curiosity_t    = (features_target_t.detach() - features_predicted_t)**2
         curiosity_t    = curiosity_t.mean(dim=1)
 
         return curiosity_t
@@ -220,5 +217,5 @@ class AgentPPOCuriosity():
         self.states_running_mean_t = torch.from_numpy(initial_states_mean).to(self.model_ppo.device)
 
     def _update_states_running_stats(self, state_t, eps = 0.001):
-        mean_t = state_t.mean(dim = 0)
+        mean_t = state_t.mean(dim = 0).detach()
         self.states_running_mean_t = (1.0 - eps)*self.states_running_mean_t + eps*mean_t

@@ -18,8 +18,8 @@ import models.ppo_curiosity.src.config                  as Config
 path = "models/ppo_curiosity/"
 
 config  = Config.Config()
-
-envs = MultiEnvParallel("MsPacmanNoFrameskip-v4", AtariWrapper, config.actors)
+ 
+envs = MultiEnvSeq("MsPacmanNoFrameskip-v4", AtariWrapper, config.actors)
  
 agent = libs_agents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForwardTarget, Config)
 
