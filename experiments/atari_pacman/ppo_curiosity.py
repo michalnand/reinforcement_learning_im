@@ -25,10 +25,10 @@ agent = libs_agents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForward
 
 max_iterations = 1*(10**6) 
 
-trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
-trainig.run() 
+#trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
+#trainig.run() 
 
-'''
+
 agent.load(path)
 agent.disable_training()
 while True:
@@ -36,4 +36,3 @@ while True:
 
     envs.render(0)
     time.sleep(0.01)
-'''
