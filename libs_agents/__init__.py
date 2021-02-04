@@ -8,6 +8,7 @@ from .AgentDQNDuel                  import *
 
 from .AgentPPO                      import *
 from .AgentPPOCuriosity             import *
+from .AgentPPOCuriosityMulti        import *
 from .AgentPPOEntropy               import *
 
 from .AgentDDPG                     import *
