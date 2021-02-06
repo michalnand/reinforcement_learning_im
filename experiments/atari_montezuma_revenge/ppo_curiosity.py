@@ -1,13 +1,8 @@
 import gym
 import numpy
 import time
-import sys
-sys.path.insert(0, '../..')
 
-import libs_agents
-from libs_common.Training import *
-from libs_common.MontezumaWrapper import *
-from libs_common.MultiEnv import *
+import RLAgents
 
 import models.ppo_curiosity.src.model_ppo               as ModelPPO
 import models.ppo_curiosity.src.model_forward           as ModelForward
@@ -19,13 +14,13 @@ path = "models/ppo_curiosity/"
 
 config  = Config.Config()
 
-envs = MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", MontezumaWrapper, config.actors)
+envs = RLAgents.MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", RLAgents.WrapperMontezuma, config.actors)
 
-agent = libs_agents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForwardTarget, Config)
+agent = RLAgents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForwardTarget, Config)
 
-max_iterations = config.actors*30000
+max_iterations = 2*(10**6)
 
-trainig = TrainingIterations(envs, agent, max_iterations, path, 100)
+trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 1000)
 trainig.run() 
 
 '''

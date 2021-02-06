@@ -1,12 +1,8 @@
 import gym
 import numpy
 import time
-import sys
-sys.path.insert(0, '../..')
 
-import libs_agents
-from libs_common.Training import *
-from libs_common.atari_wrapper import *
+import RLAgents
 
 import models.dqn_baseline.src.model            as Model
 import models.dqn_baseline.src.config           as Config
@@ -16,11 +12,10 @@ path = "models/dqn_baseline/"
 
 env = gym.make("MsPacmanNoFrameskip-v4")
 
-env = AtariWrapper(env)
+env = RLAgents.WrapperAtari(env)
 env.reset()
 
-
-agent = libs_agents.AgentDQN(env, Model, Config)
+agent = RLAgents.AgentDQN(env, Model, Config)
 
 max_iterations = 6*(10**6) 
 

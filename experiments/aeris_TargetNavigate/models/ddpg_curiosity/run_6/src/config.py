@@ -1,4 +1,4 @@
-import libs_common.decay
+import RLAgents
 
 class Config():
 
@@ -13,6 +13,6 @@ class Config():
         self.batch_size             = 64
         self.update_frequency       = 4
 
-        self.exploration   = libs_common.decay.Const(0.1, 0.1)
+        self.exploration   = RLAgents.DecayConst(0.1, 0.1)
 
         self.experience_replay_size = 200000

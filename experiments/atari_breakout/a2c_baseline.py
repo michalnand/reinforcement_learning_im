@@ -1,13 +1,8 @@
 import gym
 import numpy
 import time
-import sys
-sys.path.insert(0, '../..')
 
-import libs_agents
-from libs_common.Training import *
-from libs_common.atari_wrapper import *
-from libs_common.MultiEnv import *
+import RLAgents
 
 import models.a2c_baseline.src.model            as Model
 import models.a2c_baseline.src.config           as Config
@@ -16,19 +11,14 @@ import models.a2c_baseline.src.config           as Config
 path = "models/a2c_baseline/"
 
 config  = Config.Config()
-envs    = []
-for e in range(config.actors):
-    env = gym.make("BreakoutNoFrameskip-v4")
-    env = AtariWrapper(env)
-    envs.append(env)
 
-envs = MultiEnvParallel(envs)
+envs = RLAgents.MultiEnvParallel("BreakoutNoFrameskip-v4", RLAgents.WrapperAtari, config.actors)
 
-agent = libs_agents.AgentA2C(envs, Model, Config)
+agent = RLAgents.AgentA2C(envs, Model, Config)
 
 max_iterations = 125000
 
-trainig = TrainingIterations(envs, agent, max_iterations, path, 100)
+trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 100)
 trainig.run() 
 
 '''
@@ -37,6 +27,6 @@ agent.disable_training()
 while True:
     reward, done = agent.main()
 
-    envs[0].render()
+    envs.render(0)
     time.sleep(0.01)
 '''

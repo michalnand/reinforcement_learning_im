@@ -1,13 +1,8 @@
 import gym
 import numpy
 import time
-import sys
-sys.path.insert(0, '../..')
 
-import libs_agents
-from libs_common.Training import *
-from libs_common.MontezumaWrapper import *
-from libs_common.MultiEnv import *
+import RLAgents
 
 import models.ppo_entropy.src.model_ppo             as ModelPPO
 import models.ppo_entropy.src.model_forward         as ModelForward
@@ -20,13 +15,13 @@ path = "models/ppo_entropy/"
 
 config  = Config.Config()
 
-envs = MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", MontezumaWrapper, config.actors)
+envs = RLAgents.MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", RLAgents.WrapperMontezuma, config.actors)
 
-agent = libs_agents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
+agent = RLAgents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
 
 max_iterations = config.actors*30000
 
-trainig = TrainingIterations(envs, agent, max_iterations, path, 100)
+trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 100)
 trainig.run() 
 
 '''

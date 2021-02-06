@@ -1,7 +1,4 @@
-import sys
-sys.path.insert(0, '../../')
-
-from libs_common.RLStatsCompute import *
+import RLAgents
 
 import matplotlib.pyplot as plt
 
@@ -16,7 +13,7 @@ files.append("./models/ddpg_baseline/run_4/result/result.log")
 files.append("./models/ddpg_baseline/run_5/result/result.log")
 files.append("./models/ddpg_baseline/run_6/result/result.log")
 files.append("./models/ddpg_baseline/run_7/result/result.log")
-ddpg_baseline = RLStatsCompute(files)
+ddpg_baseline = RLAgents.RLStatsCompute(files)
 
 files = []
 files.append("./models/ddpg_curiosity/run_0/result/result.log")
@@ -27,7 +24,7 @@ files.append("./models/ddpg_curiosity/run_4/result/result.log")
 files.append("./models/ddpg_curiosity/run_5/result/result.log")
 files.append("./models/ddpg_curiosity/run_6/result/result.log")
 files.append("./models/ddpg_curiosity/run_7/result/result.log")
-ddpg_curiosity_rnd = RLStatsCompute(files) 
+ddpg_curiosity_rnd = RLAgents.RLStatsCompute(files) 
 
 '''
 files = []
@@ -39,7 +36,7 @@ files.append("./models/ddpg_entropy/run_4/result/result.log")
 files.append("./models/ddpg_entropy/run_5/result/result.log")
 files.append("./models/ddpg_entropy/run_6/result/result.log")
 files.append("./models/ddpg_entropy/run_7/result/result.log")
-ddpg_curiosity_entropy = RLStatsCompute(files) 
+ddpg_curiosity_entropy = RLAgents.RLStatsCompute(files) 
 '''
 
 plt.cla()

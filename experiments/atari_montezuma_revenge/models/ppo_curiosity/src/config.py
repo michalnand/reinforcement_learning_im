@@ -7,10 +7,10 @@ class Config():
         self.critic_loss_proportion = 0.5
         
         self.steps                  = 128
-        self.batch_size             = 4
+        self.batch_size             = 32
         
         self.training_epochs        = 4
-        self.actors                 = 128
+        self.actors                 = 16
         
         self.learning_rate_ppo      = 0.0001
         self.learning_rate_forward  = 0.000025

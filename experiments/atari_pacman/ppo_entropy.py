@@ -1,13 +1,8 @@
 import gym
 import numpy
 import time
-import sys
-sys.path.insert(0, '../..')
 
-import libs_agents
-from libs_common.Training import *
-from libs_common.atari_wrapper import *
-from libs_common.MultiEnv import *
+import RLAgents
 
 import models.ppo_entropy.src.model_ppo             as ModelPPO
 import models.ppo_entropy.src.model_forward         as ModelForward
@@ -18,9 +13,9 @@ import models.ppo_entropy.src.config                as Config
 
 path = "models/ppo_entropy/"
 
-envs = MultiEnvSeq("MsPacmanNoFrameskip-v4", AtariWrapper, config.actors)
+envs = RLAgents.MultiEnvSeq("MsPacmanNoFrameskip-v4", RLAgents.WrapperAtari, config.actors)
 
-agent = libs_agents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
+agent = RLAgents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
 
 max_iterations = 1*(10**6) 
 

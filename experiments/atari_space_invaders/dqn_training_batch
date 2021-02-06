@@ -1,3 +1,0 @@
-#python3 dqn_baseline.py
-python3 dqn_curiosity.py
-#python3 dqn_entropy.py

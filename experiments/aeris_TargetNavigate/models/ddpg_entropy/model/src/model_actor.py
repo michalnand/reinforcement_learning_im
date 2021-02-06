@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 import sys
-sys.path.insert(0, '../../../../..')
+sys.path.insert(0, '../../')
 
 import libs_layers
 
@@ -15,10 +15,16 @@ class Model(torch.nn.Module):
         self.channels   = input_shape[0]
         self.width      = input_shape[1]
 
-        fc_count        = kernels_count*self.width//4
+        fc_count        = kernels_count*self.width//8
 
         self.layers = [ 
-            nn.Conv1d(self.channels, kernels_count, kernel_size=8, stride=4, padding=2),
+            nn.Conv1d(self.channels, kernels_count, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+
+            nn.Conv1d(kernels_count, kernels_count, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+
+            nn.Conv1d(kernels_count, kernels_count, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
 
             nn.Flatten(),
@@ -30,8 +36,10 @@ class Model(torch.nn.Module):
         ]
 
         torch.nn.init.xavier_uniform_(self.layers[0].weight)
-        torch.nn.init.xavier_uniform_(self.layers[3].weight)
-        torch.nn.init.uniform_(self.layers[5].weight, -0.3, 0.3)
+        torch.nn.init.xavier_uniform_(self.layers[2].weight)
+        torch.nn.init.xavier_uniform_(self.layers[4].weight)
+        torch.nn.init.xavier_uniform_(self.layers[7].weight)
+        torch.nn.init.uniform_(self.layers[9].weight, -0.3, 0.3)
 
         self.model = nn.Sequential(*self.layers)
         self.model.to(self.device)

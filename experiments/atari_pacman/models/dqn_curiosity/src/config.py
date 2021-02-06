@@ -1,4 +1,4 @@
-import libs_common.decay
+import RLAgents
 
 class Config(): 
 
@@ -12,6 +12,6 @@ class Config():
         self.learning_rate_forward  = 0.0001
         self.beta                   = 1.0
                  
-        self.exploration            = libs_common.decay.Const(0.05, 0.05)        
+        self.exploration            = RLAgents.DecayConst(0.05, 0.05)        
         self.experience_replay_size = 32768
  

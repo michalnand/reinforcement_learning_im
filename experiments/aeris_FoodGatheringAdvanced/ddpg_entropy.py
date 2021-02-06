@@ -3,11 +3,7 @@ import gym_aeris
 import numpy
 import time
 
-import sys
-sys.path.insert(0, '../..')
-
-import libs_agents
-from libs_common.Training import *
+import RLAgents
 
 
 import models.ddpg_entropy.model.src.model_critic               as ModelCritic
@@ -21,10 +17,10 @@ path = "models/ddpg_entropy/model/"
 
 env = gym.make("FoodGatheringAdvanced-v0", render = False)
 
-agent = libs_agents.AgentDDPGEntropy(env, ModelCritic, ModelActor, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
+agent = RLAgents.AgentDDPGEntropy(env, ModelCritic, ModelActor, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
 
 max_iterations = 4*(10**6)
-trainig = TrainingIterations(env, agent, max_iterations, path, 1000)
+trainig = RLAgents.TrainingIterations(env, agent, max_iterations, path, 1000)
 trainig.run()
 
 '''
