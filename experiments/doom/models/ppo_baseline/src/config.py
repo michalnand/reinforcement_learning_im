@@ -5,7 +5,7 @@ class Config():
         self.eps_clip               = 0.2
 
         self.steps                  = 128
-        self.batch_size             = 32
+        self.batch_size             = 16
         
         self.training_epochs        = 4
         self.actors                 = 16
