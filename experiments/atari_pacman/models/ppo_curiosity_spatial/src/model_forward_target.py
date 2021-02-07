@@ -53,7 +53,7 @@ class Model(torch.nn.Module):
         self.model_fc = nn.Sequential(*self.layers_fc)
         self.model_fc.to(self.device)
 
-        print("model_forward_spatial")
+        print("model_forward_spatial_target")
         print(self.model_s0)
         print(self.model_s1)
         print(self.model_s2)
@@ -116,11 +116,11 @@ if __name__ == "__main__":
 
     spatial, g = model.forward(state, action)
 
-    print(spatial[0].shape)
-    print(spatial[1].shape)
-    print(spatial[2].shape)
-    print(spatial[3].shape)
-    print(g.shape)
+    print(spatial[0].shape, spatial[0].max())
+    print(spatial[1].shape, spatial[1].max())
+    print(spatial[2].shape, spatial[2].max())
+    print(spatial[3].shape, spatial[3].max())
+    print(g.shape, g.max())
 
     output = spatial[0].mean() + spatial[1].mean() + spatial[2].mean() + spatial[3].mean() + g.mean()
 

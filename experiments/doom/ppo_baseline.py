@@ -12,19 +12,20 @@ path = "models/ppo_baseline/"
 
 config  = Config.Config()
 
-envs = RLAgents.MultiEnvSeq("./scenarios/deathmatch.cfg", RLAgents.WrapperDoom, config.actors)
+
+#envs = RLAgents.MultiEnvSeq("./scenarios/deathmatch.cfg", RLAgents.WrapperDoom, config.actors)
+envs = RLAgents.MultiEnvSeq("./scenarios/deathmatch.cfg", RLAgents.WrapperDoomRender, config.actors)
 
 agent = RLAgents.AgentPPO(envs, Model, Config)
 
 max_iterations = 2*(10**6) 
 
-trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 1000)
-trainig.run() 
+#trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 1000)
+#trainig.run() 
 
-'''
+
 agent.load(path)
 agent.disable_training()
 while True:
     reward, done = agent.main()
     time.sleep(0.01)
-'''

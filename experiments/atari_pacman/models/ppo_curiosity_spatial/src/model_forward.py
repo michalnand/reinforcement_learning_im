@@ -14,10 +14,10 @@ class ModelSpatialBlock(torch.nn.Module):
         self.act2   = nn.ELU()
         self.conv3  = nn.Conv2d(output_channels, output_channels, kernel_size=1, stride=1, padding=0)
 
-        torch.nn.init.uniform_(self.conv0.weight)
-        torch.nn.init.uniform_(self.conv1.weight)
-        torch.nn.init.uniform_(self.conv2.weight)
-        torch.nn.init.uniform_(self.conv3.weight)
+        torch.nn.init.orthogonal_(self.conv0.weight, 2.0**0.5)
+        torch.nn.init.orthogonal_(self.conv1.weight, 2.0**0.5)
+        torch.nn.init.orthogonal_(self.conv2.weight, 2.0**0.5)
+        torch.nn.init.orthogonal_(self.conv3.weight, 2.0**0.5)
 
     def forward(self, x):
         y = self.conv0(x)
@@ -59,7 +59,7 @@ class Model(torch.nn.Module):
         
         for i in range(len(self.layers_fc)):
             if hasattr(self.layers_fc[i], "weight"):
-                torch.nn.init.uniform_(self.layers_fc[i].weight)
+                torch.nn.init.orthogonal_(self.layers_fc[i].weight, 2**0.5)
                 
         self.model_s0.to(self.device)
         self.model_s1.to(self.device)
@@ -132,11 +132,11 @@ if __name__ == "__main__":
 
     spatial, g = model.forward(state, action)
 
-    print(spatial[0].shape)
-    print(spatial[1].shape)
-    print(spatial[2].shape)
-    print(spatial[3].shape)
-    print(g.shape)
+    print(spatial[0].shape, spatial[0].max())
+    print(spatial[1].shape, spatial[1].max())
+    print(spatial[2].shape, spatial[2].max())
+    print(spatial[3].shape, spatial[3].max())
+    print(g.shape, g.max())
 
     output = spatial[0].mean() + spatial[1].mean() + spatial[2].mean() + spatial[3].mean() + g.mean()
 
