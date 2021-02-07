@@ -20,7 +20,7 @@ ddpg_baseline = RLAgents.RLStatsCompute(files)
 
 files = []
 files.append("./models/ddpg_curiosity/run_0/result/result.log")
-#files.append("./models/ddpg_curiosity/run_1/result/result.log")
+files.append("./models/ddpg_curiosity/run_1/result/result.log")
 #files.append("./models/ddpg_curiosity/run_2/result/result.log")
 #files.append("./models/ddpg_curiosity/run_3/result/result.log")
 #files.append("./models/ddpg_curiosity/run_4/result/result.log")

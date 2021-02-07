@@ -1,9 +1,10 @@
-python3 ddpg_curiosity.py
-cp -r models/ddpg_curiosity/model/  models/ddpg_curiosity/run_0
-python3 ddpg_curiosity.py
-cp -r models/ddpg_curiosity/model/  models/ddpg_curiosity/run_1
-python3 ddpg_curiosity.py
-cp -r models/ddpg_curiosity/model/  models/ddpg_curiosity/run_2
+#python3 ddpg_curiosity.py
+#cp -r models/ddpg_curiosity/model/  models/ddpg_curiosity/run_0
+#python3 ddpg_curiosity.py
+#cp -r models/ddpg_curiosity/model/  models/ddpg_curiosity/run_1
+#python3 ddpg_curiosity.py
+#cp -r models/ddpg_curiosity/model/  models/ddpg_curiosity/run_2
+
 python3 ddpg_curiosity.py
 cp -r models/ddpg_curiosity/model/  models/ddpg_curiosity/run_3
 python3 ddpg_curiosity.py
