@@ -17,11 +17,11 @@ config  = Config.Config()
 envs = RLAgents.MultiEnvParallel("SuperMarioBros-v0", RLAgents.WrapperSuperMario, config.actors, envs_per_thread=4)
 #envs = RLAgents.MultiEnvSeq("SuperMarioBros-v0", RLAgents.WrapperSuperMario, config.actors)
 
-agent = RLAgents.AgentPPOCuriosity(envs, Model, ModelForward, ModelForwardTarget, Config)
+agent = RLAgents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForwardTarget, Config)
 
 max_iterations = 1*(10**6)  
 
-trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
+trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 1000)
 trainig.run() 
 
 '''
