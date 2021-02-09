@@ -21,12 +21,12 @@ ddpg_baseline = RLAgents.RLStatsCompute(files)
 files = []
 files.append("./models/ddpg_curiosity/run_0/result/result.log")
 files.append("./models/ddpg_curiosity/run_1/result/result.log")
-#files.append("./models/ddpg_curiosity/run_2/result/result.log")
-#files.append("./models/ddpg_curiosity/run_3/result/result.log")
-#files.append("./models/ddpg_curiosity/run_4/result/result.log")
-#files.append("./models/ddpg_curiosity/run_5/result/result.log")
-#files.append("./models/ddpg_curiosity/run_6/result/result.log")
-#files.append("./models/ddpg_curiosity/run_7/result/result.log")
+files.append("./models/ddpg_curiosity/run_2/result/result.log")
+files.append("./models/ddpg_curiosity/run_3/result/result.log")
+files.append("./models/ddpg_curiosity/run_4/result/result.log")
+files.append("./models/ddpg_curiosity/run_5/result/result.log")
+files.append("./models/ddpg_curiosity/run_6/result/result.log")
+files.append("./models/ddpg_curiosity/run_7/result/result.log")
 ddpg_curiosity_rnd = RLAgents.RLStatsCompute(files) 
 
 '''
