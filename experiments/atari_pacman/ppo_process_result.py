@@ -53,7 +53,6 @@ plt.fill_between(rl_stats_compute_curiosity.mean[0], rl_stats_compute_curiosity.
 plt.legend(loc='lower right', borderaxespad=0.)
 plt.savefig(result_path + "ppo_score_per_iteration.png", dpi = 300)
 
-'''
 
 plt.cla()
 plt.ylabel("value")
@@ -65,7 +64,6 @@ plt.fill_between(rl_stats_compute_curiosity.mean[0], rl_stats_compute_curiosity.
 
 plt.legend(loc='upper right', borderaxespad=0.)
 plt.savefig(result_path + "ppo_curiosity_internal_motivation.png", dpi = 300)
-'''
 
 '''
 plt.cla()

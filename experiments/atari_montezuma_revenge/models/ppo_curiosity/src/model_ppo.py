@@ -1,6 +1,33 @@
 import torch
 import torch.nn as nn
 
+class OutputHead(torch.nn.Module):
+
+    def __init__(self, inputs_count, outputs_count):
+        super(OutputHead, self).__init__()
+        
+        self.fc0    = nn.Linear(inputs_count, inputs_count)
+        self.act0   = nn.ReLU()                   
+        self.fc1    = nn.Linear(inputs_count, outputs_count)  
+
+        nn.init.orthogonal_(self.fc0.weight, 0.1**0.5)
+        self.fc0.bias.data.zero_()  
+
+        nn.init.orthogonal_(self.fc1.weight, 0.01**0.5)
+        self.fc1.bias.data.zero_()  
+
+    def forward(self, x):
+        y = self.fc0(x)
+        y = self.act0(y)
+        y = self.fc1(x + y)
+
+        return y
+
+
+
+
+
+
 class Model(torch.nn.Module):
 
     def __init__(self, input_shape, outputs_count):
@@ -32,39 +59,26 @@ class Model(torch.nn.Module):
             nn.ReLU(),
             nn.AvgPool2d(kernel_size=2, stride=2, padding=0),
 
-            nn.Flatten()
+            nn.Flatten(),
+
+            nn.Linear(fc_inputs_count, 512),
+            nn.ReLU(),
+            nn.Linear(512, 512),
+            nn.ReLU()
         ] 
-
-        self.layers_value = [
-            nn.Linear(fc_inputs_count, 512),
-            nn.ReLU(),                       
-            nn.Linear(512, 1)    
-        ]  
-
-        self.layers_policy = [
-            nn.Linear(fc_inputs_count, 512),
-            nn.ReLU(),                      
-            nn.Linear(512, outputs_count)
-        ]
- 
+  
         for i in range(len(self.layers_features)):
             if hasattr(self.layers_features[i], "weight"):
-                torch.nn.init.orthogonal_(self.layers_features[i].weight, 2.0**0.5)
-
-        torch.nn.init.orthogonal_(self.layers_value[0].weight, 2.0**0.5)
-        torch.nn.init.orthogonal_(self.layers_value[2].weight, 0.01)
-
-        torch.nn.init.orthogonal_(self.layers_policy[0].weight, 2.0**0.5)
-        torch.nn.init.orthogonal_(self.layers_policy[2].weight, 0.01)
-
+                torch.nn.init.orthogonal_(self.layers_features[i].weight, 2**0.5)
+                self.layers_features[i].bias.data.zero_()
 
         self.model_features = nn.Sequential(*self.layers_features)
         self.model_features.to(self.device)
 
-        self.model_value = nn.Sequential(*self.layers_value)
+        self.model_value = OutputHead(512, 1)
         self.model_value.to(self.device)
 
-        self.model_policy = nn.Sequential(*self.layers_policy)
+        self.model_policy = OutputHead(512, self.outputs_count)
         self.model_policy.to(self.device)
 
         print("model_ppo")
@@ -99,22 +113,3 @@ class Model(torch.nn.Module):
         self.model_features.eval() 
         self.model_value.eval() 
         self.model_policy.eval() 
-
-
-    def get_activity_map(self, state):
- 
-        state_t     = torch.tensor(state, dtype=torch.float32).detach().to(self.device).unsqueeze(0)
-        features    = self.model_features(state_t)
-        features    = features.reshape((1, 128, 6, 6))
-
-        upsample = nn.Upsample(size=(self.input_shape[1], self.input_shape[2]), mode='bicubic')
-
-        features = upsample(features).sum(dim = 1)
-
-        result = features[0].to("cpu").detach().numpy()
-
-        k = 1.0/(result.max() - result.min())
-        q = 1.0 - k*result.max()
-        result = k*result + q
-        
-        return result

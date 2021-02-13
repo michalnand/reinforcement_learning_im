@@ -2,51 +2,42 @@ import torch
 import torch.nn as nn
 
 class Model(torch.nn.Module):
-    def __init__(self, input_shape, latent_size = 32):
+    def __init__(self, input_shape):
         super(Model, self).__init__()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.layers_encoder = [ 
-            nn.Conv2d(input_shape[0], 32, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(input_shape[0], 32, kernel_size=8, stride=4, padding=2),
             nn.ELU(),
 
             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
             nn.ELU(),
 
             nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
-            nn.ELU(),
-
-            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
-            nn.ELU(),
-
-            nn.Conv2d(64, latent_size, kernel_size=1, stride=1, padding=0),
-            nn.ELU() 
+            nn.ELU()
         ] 
  
         self.layers_decoder = [ 
-            nn.ConvTranspose2d(latent_size, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.ELU(),
-
             nn.ConvTranspose2d(64, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.ELU(),
 
             nn.ConvTranspose2d(64, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.ELU(),
 
-            nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(64, 32, kernel_size=8, stride=4, padding=2, output_padding=0),
             nn.ELU(),
           
             nn.Conv2d(32, input_shape[0], kernel_size=1, stride=1, padding=0)
-        ] 
+        ]  
   
         for i in range(len(self.layers_encoder)):
             if hasattr(self.layers_encoder[i], "weight"):
-                torch.nn.init.orthogonal_(self.layers_encoder[i].weight, 2.0**0.5)
+                torch.nn.init.orthogonal_(self.layers_encoder[i].weight, 2**0.5)
 
         for i in range(len(self.layers_decoder)):
             if hasattr(self.layers_decoder[i], "weight"):
-                torch.nn.init.orthogonal_(self.layers_decoder[i].weight, 2.0**0.5)
+                torch.nn.init.orthogonal_(self.layers_decoder[i].weight, 2**0.5)
 
        
         self.model_encoder = nn.Sequential(*self.layers_encoder)
@@ -62,15 +53,14 @@ class Model(torch.nn.Module):
 
     def forward(self, state):
         features    = self.model_encoder(state)
+        features_res    = features.view((features.shape[0], -1))
 
-        noise       = torch.randn(features.shape).to(features.device)
-        f_noised    = features + 0.01*noise
-
-        return self.model_decoder(f_noised), features
-
+        return self.model_decoder(features), features_res
 
     def eval_features(self, state):
-        return self.model_encoder(state)
+        features    = self.model_encoder(state)
+        features    = features.view((features.shape[0], -1))
+        return features
        
     def save(self, path):
         print("saving ", path)

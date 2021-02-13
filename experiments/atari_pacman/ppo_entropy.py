@@ -13,13 +13,15 @@ import models.ppo_entropy.src.config                as Config
 
 path = "models/ppo_entropy/"
 
+config  = Config.Config()
+ 
 envs = RLAgents.MultiEnvSeq("MsPacmanNoFrameskip-v4", RLAgents.WrapperAtari, config.actors)
 
 agent = RLAgents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
 
 max_iterations = 1*(10**6) 
 
-trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
+trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 1000)
 trainig.run() 
 
 '''

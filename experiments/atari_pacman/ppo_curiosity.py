@@ -20,7 +20,7 @@ agent = RLAgents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForwardTar
 
 max_iterations = 1*(10**6) 
 
-#trainig = TrainingIterations(envs, agent, max_iterations, path, 1000)
+#trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 1000)
 #trainig.run() 
 
 

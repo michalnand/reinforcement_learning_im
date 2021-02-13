@@ -12,17 +12,17 @@ path = "models/ppo_baseline/"
 
 config  = Config.Config()
 
-envs = RLAgents.MultiEnvParallel("SuperMarioBros-v0", RLAgents.WrapperSuperMario, config.actors, envs_per_thread=4)
-#envs = RLAgents.MultiEnvSeq("SuperMarioBros-v0", RLAgents.WrapperSuperMario, config.actors)
+#envs = RLAgents.MultiEnvParallel("SuperMarioBros-v0", RLAgents.WrapperSuperMario, config.actors, envs_per_thread=4)
+envs = RLAgents.MultiEnvSeq("SuperMarioBros-v0", RLAgents.WrapperSuperMario, config.actors)
 
 agent = RLAgents.AgentPPO(envs, Model, Config)
 
 max_iterations = 1*(10**6)  
 
-trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 1000)
-trainig.run() 
+#trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 1000)
+#trainig.run() 
 
-'''
+
 agent.load(path)
 agent.disable_training()
 while True:
@@ -30,4 +30,3 @@ while True:
 
     envs.render(0)
     time.sleep(0.01)
-'''
