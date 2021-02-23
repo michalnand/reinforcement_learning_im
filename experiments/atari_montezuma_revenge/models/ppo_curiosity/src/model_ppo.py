@@ -1,33 +1,6 @@
 import torch
 import torch.nn as nn
 
-class OutputHead(torch.nn.Module):
-
-    def __init__(self, inputs_count, outputs_count):
-        super(OutputHead, self).__init__()
-        
-        self.fc0    = nn.Linear(inputs_count, inputs_count)
-        self.act0   = nn.ReLU()                   
-        self.fc1    = nn.Linear(inputs_count, outputs_count)  
-
-        nn.init.orthogonal_(self.fc0.weight, 0.1**0.5)
-        self.fc0.bias.data.zero_()  
-
-        nn.init.orthogonal_(self.fc1.weight, 0.01**0.5)
-        self.fc1.bias.data.zero_()  
-
-    def forward(self, x):
-        y = self.fc0(x)
-        y = self.act0(y)
-        y = self.fc1(x + y)
-
-        return y
-
-
-
-
-
-
 class Model(torch.nn.Module):
 
     def __init__(self, input_shape, outputs_count):
@@ -62,54 +35,94 @@ class Model(torch.nn.Module):
             nn.Flatten(),
 
             nn.Linear(fc_inputs_count, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU()
+            nn.ReLU() 
         ] 
+
+        self.layers_ext_value = [ 
+            nn.Linear(512, 512),
+            nn.ReLU(),                       
+            nn.Linear(512, 1)    
+        ]
+
+        self.layers_int_value = [
+            nn.Linear(512, 512),
+            nn.ReLU(),                       
+            nn.Linear(512, 1)    
+        ]  
+
+        self.layers_policy = [
+            nn.Linear(512, 512),
+            nn.ReLU(),                      
+            nn.Linear(512, outputs_count)
+        ]
+ 
   
         for i in range(len(self.layers_features)):
             if hasattr(self.layers_features[i], "weight"):
-                torch.nn.init.orthogonal_(self.layers_features[i].weight, 2**0.5)
-                self.layers_features[i].bias.data.zero_()
+                torch.nn.init.orthogonal_(self.layers_features[i].weight, 0.5**2)
+
+        for i in range(len(self.layers_ext_value)):
+            if hasattr(self.layers_ext_value[i], "weight"):
+                torch.nn.init.orthogonal_(self.layers_ext_value[i].weight, 0.01)
+                self.layers_ext_value[i].bias.data.zero_()  
+
+        for i in range(len(self.layers_int_value)):
+            if hasattr(self.layers_int_value[i], "weight"):
+                torch.nn.init.orthogonal_(self.layers_int_value[i].weight, 0.01)
+                self.layers_int_value[i].bias.data.zero_()  
+
+        for i in range(len(self.layers_policy)):
+            if hasattr(self.layers_policy[i], "weight"):
+                torch.nn.init.orthogonal_(self.layers_policy[i].weight, 0.01)
+                self.layers_policy[i].bias.data.zero_()  
+
 
         self.model_features = nn.Sequential(*self.layers_features)
         self.model_features.to(self.device)
 
-        self.model_value = OutputHead(512, 1)
-        self.model_value.to(self.device)
+        self.model_ext_value = nn.Sequential(*self.layers_ext_value)
+        self.model_ext_value.to(self.device)
 
-        self.model_policy = OutputHead(512, self.outputs_count)
+        self.model_int_value = nn.Sequential(*self.layers_int_value)
+        self.model_int_value.to(self.device)
+
+        self.model_policy = nn.Sequential(*self.layers_policy)
         self.model_policy.to(self.device)
 
         print("model_ppo")
         print(self.model_features)
-        print(self.model_value)
+        print(self.model_ext_value)
+        print(self.model_int_value)
         print(self.model_policy)
         print("\n\n")
 
 
     def forward(self, state):
-        features    = self.model_features(state)
+        features        = self.model_features(state)
 
-        value    = self.model_value(features)
-        policy   = self.model_policy(features)
+        ext_value       = self.model_ext_value(features)
+        int_value       = self.model_int_value(features)
+        policy          = self.model_policy(features)
 
-        return policy, value
+        return policy, ext_value, int_value
 
     def save(self, path):
         print("saving ", path)
 
         torch.save(self.model_features.state_dict(), path + "model_features.pt")
-        torch.save(self.model_value.state_dict(), path + "model_value.pt")
+        torch.save(self.model_ext_value.state_dict(), path + "model_ext_value.pt")
+        torch.save(self.model_int_value.state_dict(), path + "model_int_value.pt")
         torch.save(self.model_policy.state_dict(), path + "model_policy.pt")
 
     def load(self, path):
         print("loading ", path) 
 
         self.model_features.load_state_dict(torch.load(path + "model_features.pt", map_location = self.device))
-        self.model_value.load_state_dict(torch.load(path + "model_value.pt", map_location = self.device))
+        self.model_ext_value.load_state_dict(torch.load(path + "model_ext_value.pt", map_location = self.device))
+        self.model_int_value.load_state_dict(torch.load(path + "model_int_value.pt", map_location = self.device))
         self.model_policy.load_state_dict(torch.load(path + "model_policy.pt", map_location = self.device))
         
         self.model_features.eval() 
-        self.model_value.eval() 
+        self.model_ext_value.eval()
+        self.model_int_value.eval() 
         self.model_policy.eval() 

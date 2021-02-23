@@ -14,14 +14,14 @@ path = "models/ppo_curiosity/"
 
 config  = Config.Config()
 
-envs = RLAgents.MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", RLAgents.WrapperMontezuma, config.actors, envs_per_thread=16)
-#envs = RLAgents.MultiEnvSeq("MontezumaRevengeNoFrameskip-v4", RLAgents.WrapperMontezuma, config.actors)
+#envs = RLAgents.MultiEnvParallel("MontezumaRevengeNoFrameskip-v4", RLAgents.WrapperMontezuma, config.actors, envs_per_thread=16)
+envs = RLAgents.MultiEnvSeq("MontezumaRevengeNoFrameskip-v4", RLAgents.WrapperMontezuma, config.actors)
 
 agent = RLAgents.AgentPPOCuriosity(envs, ModelPPO, ModelForward, ModelForwardTarget, Config)
 
-max_iterations = 3840000
+max_iterations = 25*(10**6)
 
-trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 100)
+trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 1000)
 trainig.run() 
 
 '''

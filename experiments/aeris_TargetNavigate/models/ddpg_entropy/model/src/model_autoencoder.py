@@ -7,39 +7,39 @@ class Model(torch.nn.Module):
 
         self.device = "cpu"
 
+        width = input_shape[1]
+
         self.layers_encoder = [ 
             nn.Conv1d(input_shape[0], kernels_count, kernel_size=8, stride=4, padding=2),
             nn.ReLU(),
 
-            nn.Conv1d(kernels_count, kernels_count, kernel_size=3, stride=1, padding=1),
+            nn.Flatten(),
+
+            nn.Linear(kernels_count*width//4, width),
             nn.ReLU(),
 
-            nn.Conv1d(kernels_count, kernels_count//4, kernel_size=3, stride=1, padding=1),
-            nn.ReLU()
+            nn.Linear(width, width//4)
         ]
 
         self.layers_decoder = [ 
-            nn.Conv1d(kernels_count//4, kernels_count, kernel_size=3, stride=1, padding=1),
+            nn.Conv1d(1, kernels_count, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
 
-            nn.Conv1d(kernels_count, kernels_count, kernel_size=3, stride=1, padding=1),
+            nn.ConvTranspose1d(kernels_count, kernels_count, kernel_size=8, stride=4, padding=2, output_padding=0),
             nn.ReLU(),
 
-            nn.ConvTranspose1d(kernels_count, kernels_count, kernel_size=8, stride=4, padding=2),
-            nn.ReLU(),
-
-            nn.Conv1d(kernels_count, input_shape[0], kernel_size=1, stride=1, padding=0)
+            nn.Conv1d(kernels_count, input_shape[0], kernel_size=3, stride=1, padding=1)
         ]
- 
-        torch.nn.init.xavier_uniform_(self.layers_encoder[0].weight)
-        torch.nn.init.xavier_uniform_(self.layers_encoder[2].weight)
-        torch.nn.init.xavier_uniform_(self.layers_encoder[4].weight)
 
-        torch.nn.init.xavier_uniform_(self.layers_decoder[0].weight)
-        torch.nn.init.xavier_uniform_(self.layers_decoder[2].weight)
-        torch.nn.init.xavier_uniform_(self.layers_decoder[4].weight)
-        torch.nn.init.xavier_uniform_(self.layers_decoder[6].weight)
- 
+        torch.nn.init.orthogonal_(self.layers_encoder[0].weight, 2**0.5)
+        torch.nn.init.orthogonal_(self.layers_encoder[3].weight, 2**0.5)
+        torch.nn.init.orthogonal_(self.layers_encoder[5].weight, 2**0.5)
+
+        
+        torch.nn.init.orthogonal_(self.layers_decoder[0].weight, 2**0.5)
+        torch.nn.init.orthogonal_(self.layers_decoder[2].weight, 2**0.5)
+        torch.nn.init.orthogonal_(self.layers_decoder[4].weight, 2**0.5)
+        
         self.model_encoder = nn.Sequential(*self.layers_encoder) 
         self.model_encoder.to(self.device)
 
@@ -54,7 +54,10 @@ class Model(torch.nn.Module):
 
     def forward(self, state):
         features = self.model_encoder(state)
-        return self.model_decoder(features), features
+
+        f = features.reshape((state.shape[0], 1, features.shape[1]))
+        print(">>>> ", f.shape)
+        return self.model_decoder(f), features.view(len(state), -1)
 
     def eval_features(self, state):
         features = self.model_encoder(state)
@@ -79,13 +82,12 @@ class Model(torch.nn.Module):
 
 if __name__ == "__main__":
     batch_size      = 64
-    input_shape     = (6, 1024)
+    input_shape     = (6, 128)
 
     model = Model(input_shape)
 
     state   = torch.randn((batch_size, ) + input_shape)
 
-    y, _ = model.forward(state)
-    features = model.eval_features(state)
+    y, features = model.forward(state)
 
     print(state.shape, features.shape, y.shape)

@@ -13,7 +13,7 @@ class Config():
         self.beta1                          = 1.0
         self.beta2                          = 10.0
 
-        self.episodic_memory_size           = 32
+        self.episodic_memory_size           = 64
         
         self.batch_size                     = 64
         self.update_frequency               = 4

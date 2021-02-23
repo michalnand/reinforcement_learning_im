@@ -7,12 +7,12 @@ import RLAgents
 import models.ppo_entropy.src.model_ppo             as ModelPPO
 import models.ppo_entropy.src.model_forward         as ModelForward
 import models.ppo_entropy.src.model_forward_target  as ModelForwardTarget
-import models.ppo_entropy.src.model_autoencoder     as ModelAutoencoder
+import models.ppo_entropy.src.model_ae              as ModelAutoencoder
 import models.ppo_entropy.src.config                as Config
  
 
 path = "models/ppo_entropy/"
-
+ 
 config  = Config.Config()
  
 envs = RLAgents.MultiEnvSeq("MsPacmanNoFrameskip-v4", RLAgents.WrapperAtari, config.actors)

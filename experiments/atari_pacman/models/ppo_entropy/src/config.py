@@ -1,6 +1,12 @@
 class Config(): 
     def __init__(self):
-        self.gamma                  = 0.99
+        self.gamma_ext              = 0.99
+        self.gamma_int              = 0.9
+
+        self.ext_adv_coeff          = 1.0
+        self.int_adv_coeff          = 0.5
+
+
         self.entropy_beta           = 0.001
         self.eps_clip               = 0.2
 
@@ -14,8 +20,4 @@ class Config():
         self.learning_rate_forward      = 0.0001
         self.learning_rate_autoencoder  = 0.0001
         
-        self.beta1                      = 0.1
-        self.beta2                      = 0.1
-
-        self.episodic_memory_size       = 32
-        
+        self.episodic_memory_size       = 128
