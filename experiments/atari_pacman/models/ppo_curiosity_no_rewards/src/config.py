@@ -1,9 +1,9 @@
 class Config(): 
     def __init__(self):
-        self.gamma_ext              = 0.99
+        self.gamma_ext              = 0.995
         self.gamma_int              = 0.99
 
-        self.ext_adv_coeff          = 0.0
+        self.ext_adv_coeff          = 1.0
         self.int_adv_coeff          = 1.0
 
 
@@ -14,7 +14,7 @@ class Config():
         self.batch_size             = 16
         
         self.training_epochs        = 4
-        self.actors                 = 16
+        self.actors                 = 1 #16
         
         self.learning_rate_ppo      = 0.00025
         self.learning_rate_forward  = 0.0001

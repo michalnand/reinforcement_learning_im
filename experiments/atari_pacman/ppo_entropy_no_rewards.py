@@ -4,27 +4,28 @@ import time
 
 import RLAgents
 
-import models.ppo_entropy.src.model_ppo             as ModelPPO
-import models.ppo_entropy.src.model_forward         as ModelForward
-import models.ppo_entropy.src.model_forward_target  as ModelForwardTarget
-import models.ppo_entropy.src.model_ae              as ModelAutoencoder
-import models.ppo_entropy.src.config                as Config
+import models.ppo_entropy_no_rewards.src.model_ppo             as ModelPPO
+import models.ppo_entropy_no_rewards.src.model_forward         as ModelForward
+import models.ppo_entropy_no_rewards.src.model_forward_target  as ModelForwardTarget
+import models.ppo_entropy_no_rewards.src.model_ae              as ModelAutoencoder
+import models.ppo_entropy_no_rewards.src.config                as Config
  
 
-path = "models/ppo_entropy/"
+path = "models/ppo_entropy_no_rewards/"
  
 config  = Config.Config()
  
 envs = RLAgents.MultiEnvSeq("MsPacmanNoFrameskip-v4", RLAgents.WrapperAtariNoRewards, config.actors)
+envs = RLAgents.MultiEnvParallel("MsPacmanNoFrameskip-v4", RLAgents.WrapperAtariNoRewards, config.actors, envs_per_thread=4)
 
 agent = RLAgents.AgentPPOEntropy(envs, ModelPPO, ModelForward, ModelForwardTarget, ModelAutoencoder, Config)
 
 max_iterations = 1*(10**6) 
 
-trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 1000)
-trainig.run() 
+#trainig = RLAgents.TrainingIterations(envs, agent, max_iterations, path, 1000)
+#trainig.run() 
 
-'''
+
 agent.load(path)
 agent.disable_training()
 while True:
@@ -32,4 +33,3 @@ while True:
 
     envs.render(0)
     time.sleep(0.01)
-'''

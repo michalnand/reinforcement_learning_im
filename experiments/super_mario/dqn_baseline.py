@@ -15,7 +15,7 @@ env.reset()
 
 agent = RLAgents.AgentDQN(env, Model, Config)
 
-max_iterations = 16*(10**6)
+max_iterations = 8*(10**6)
 
 
 trainig = RLAgents.TrainingIterations(env, agent, max_iterations, path, 10000)

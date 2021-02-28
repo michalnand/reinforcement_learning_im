@@ -10,7 +10,7 @@ import models.ddpg_entropy.model.src.model_critic               as ModelCritic
 import models.ddpg_entropy.model.src.model_actor                as ModelActor
 import models.ddpg_entropy.model.src.model_forward              as ModelForward
 import models.ddpg_entropy.model.src.model_forward_target       as ModelForwardTarget
-import models.ddpg_entropy.model.src.model_autoencoder          as ModelAutoencoder
+import models.ddpg_entropy.model.src.model_ae                   as ModelAutoencoder
 import models.ddpg_entropy.model.src.config                     as Config
 
 path = "models/ddpg_entropy/model/"

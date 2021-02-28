@@ -60,15 +60,15 @@ class Model(torch.nn.Module):
 
         for i in range(len(self.layers_ext_value)):
             if hasattr(self.layers_ext_value[i], "weight"):
-                torch.nn.init.xavier_uniform_(self.layers_ext_value[i].weight)
+                torch.nn.init.orthogonal_(self.layers_ext_value[i].weight, 0.01)
 
         for i in range(len(self.layers_int_value)):
             if hasattr(self.layers_int_value[i], "weight"):
-                torch.nn.init.xavier_uniform_(self.layers_int_value[i].weight)
+                torch.nn.init.orthogonal_(self.layers_int_value[i].weight, 0.01)
 
         for i in range(len(self.layers_policy)):
             if hasattr(self.layers_policy[i], "weight"):
-                torch.nn.init.xavier_uniform_(self.layers_policy[i].weight)
+                torch.nn.init.orthogonal_(self.layers_policy[i].weight, 0.01)
 
 
         self.model_features = nn.Sequential(*self.layers_features)
